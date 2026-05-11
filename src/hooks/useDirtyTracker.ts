@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 
 import { useDiagramStore } from "@/store/diagramStore";
+import { useDrawingsStore } from "@/store/drawingsStore";
 import { useProjectStore } from "@/store/projectStore";
 
 /**
- * Flags the project as dirty whenever the diagram's nodes or edges change.
- * Initial state is never dirty; loads call `loadProjectMeta` which resets
- * dirty, then this subscriber will only fire for subsequent mutations.
+ * Flags the project as dirty whenever the diagram, drawings, or company logo
+ * changes. Initial state is never dirty; loads call `loadProjectMeta` /
+ * `replace` which reset dirty, then these subscribers fire only for
+ * subsequent mutations.
  */
 export function useDirtyTracker() {
   useEffect(() => {
@@ -14,12 +16,29 @@ export function useDirtyTracker() {
       nodes: useDiagramStore.getState().nodes,
       edges: useDiagramStore.getState().edges,
     };
-    const unsub = useDiagramStore.subscribe((state) => {
+    const unsubDiagram = useDiagramStore.subscribe((state) => {
       if (state.nodes !== prev.nodes || state.edges !== prev.edges) {
         prev = { nodes: state.nodes, edges: state.edges };
         useProjectStore.getState().markDirty();
       }
     });
-    return unsub;
+
+    let prevDrawings = {
+      pages: useDrawingsStore.getState().pages,
+      logo: useDrawingsStore.getState().companyLogo,
+    };
+    const unsubDrawings = useDrawingsStore.subscribe((state) => {
+      if (
+        state.pages !== prevDrawings.pages ||
+        state.companyLogo !== prevDrawings.logo
+      ) {
+        prevDrawings = { pages: state.pages, logo: state.companyLogo };
+        useProjectStore.getState().markDirty();
+      }
+    });
+    return () => {
+      unsubDiagram();
+      unsubDrawings();
+    };
   }, []);
 }

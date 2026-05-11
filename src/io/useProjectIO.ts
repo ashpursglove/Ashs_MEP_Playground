@@ -2,6 +2,7 @@ import { useCallback } from "react";
 
 import { useDiagramStore } from "@/store/diagramStore";
 import { useProjectStore } from "@/store/projectStore";
+import { useDrawingsStore } from "@/store/drawingsStore";
 import { pushRecent } from "@/io/recentFiles";
 
 import {
@@ -12,6 +13,7 @@ import {
   writeFileAt,
 } from "./saveLoad";
 import { exportPdf } from "./pdfExport";
+import { exportDrawingsPdf } from "./drawingsPdf";
 import { exportEquipmentCsv } from "./csvExport";
 
 export function useProjectIO() {
@@ -26,6 +28,7 @@ export function useProjectIO() {
     }
     diagram.clear();
     project.resetToDefaults();
+    useDrawingsStore.getState().clear();
     useDiagramStore.temporal.getState().clear();
   }, []);
 
@@ -56,6 +59,7 @@ export function useProjectIO() {
         fluids: parsed.fluids,
         filePath: picked.path,
       });
+      useDrawingsStore.getState().replace(parsed.drawings ?? [], parsed.companyLogo ?? null);
       useDiagramStore.temporal.getState().clear();
       pushRecent(picked.path);
     } catch (e) {
@@ -66,7 +70,15 @@ export function useProjectIO() {
   const saveAs = useCallback(async () => {
     const { meta, fluids, filePath: existing } = useProjectStore.getState();
     const { nodes, edges } = useDiagramStore.getState();
-    const json = makeProjectJson({ meta, fluids, nodes, edges });
+    const { pages: drawings, companyLogo } = useDrawingsStore.getState();
+    const json = makeProjectJson({
+      meta,
+      fluids,
+      nodes,
+      edges,
+      drawings,
+      companyLogo,
+    });
     const path = await pickAndWriteFile(existing, json);
     if (!path) return;
     useProjectStore.getState().setFilePath(path);
@@ -77,11 +89,19 @@ export function useProjectIO() {
   const save = useCallback(async () => {
     const { meta, fluids, filePath } = useProjectStore.getState();
     const { nodes, edges } = useDiagramStore.getState();
+    const { pages: drawings, companyLogo } = useDrawingsStore.getState();
     if (!filePath) {
       await saveAs();
       return;
     }
-    const json = makeProjectJson({ meta, fluids, nodes, edges });
+    const json = makeProjectJson({
+      meta,
+      fluids,
+      nodes,
+      edges,
+      drawings,
+      companyLogo,
+    });
     try {
       await writeFileAt(filePath, json);
       useProjectStore.getState().markClean();
@@ -111,6 +131,9 @@ export function useProjectIO() {
         fluids: parsed.fluids,
         filePath: path,
       });
+      useDrawingsStore
+        .getState()
+        .replace(parsed.drawings ?? [], parsed.companyLogo ?? null);
       useDiagramStore.temporal.getState().clear();
       pushRecent(path);
     } catch (e) {
@@ -118,11 +141,27 @@ export function useProjectIO() {
     }
   }, []);
 
+  /**
+   * Smart Export PDF — if the Drawings tab has pages set up, emit the full
+   * multi-page set. Otherwise fall back to the legacy single-page export of
+   * the current diagram (handy for quick "just dump my P&ID" use cases).
+   */
   const exportPdfNow = useCallback(async () => {
     const { meta } = useProjectStore.getState();
     const { nodes, edges } = useDiagramStore.getState();
+    const { pages, companyLogo } = useDrawingsStore.getState();
     try {
-      await exportPdf({ nodes, edges, meta });
+      if (pages.length > 0) {
+        await exportDrawingsPdf({
+          pages,
+          meta,
+          liveNodes: nodes,
+          liveEdges: edges,
+          companyLogo,
+        });
+      } else {
+        await exportPdf({ nodes, edges, meta });
+      }
     } catch (e) {
       alert(`PDF export failed: ${(e as Error).message}`);
     }

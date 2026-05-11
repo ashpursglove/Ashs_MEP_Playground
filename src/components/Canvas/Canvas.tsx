@@ -22,6 +22,7 @@ import {
 import { getSymbol } from "@/symbols/registry";
 import { SymbolNode } from "@/components/Canvas/SymbolNode";
 import { PipeEdge } from "@/components/Canvas/PipeEdge";
+import { SendCurrentViewButton } from "@/components/Canvas/SendCurrentViewButton";
 import { DRAG_DATA_TYPE } from "@/components/Palette/dragMime";
 import { nextTag } from "@/components/Canvas/autoTag";
 import {
@@ -196,6 +197,7 @@ export function Canvas({ className }: CanvasProps) {
           nodeColor={() => "#52525b"}
         />
       </ReactFlow>
+      <SendCurrentViewButton />
     </div>
   );
 }

@@ -18,19 +18,19 @@ import { diagramBounds, portWorldPosition } from "./geometry";
 
 /* ----- Page geometry (mm) ----------------------------------------------- */
 
-const PAGE_W = 420;
-const PAGE_H = 297;
-const MARGIN = 8;
-const TITLE_W = 180;
-const TITLE_H = 56;
+export const PAGE_W = 420;
+export const PAGE_H = 297;
+export const MARGIN = 8;
+export const TITLE_W = 180;
+export const TITLE_H = 56;
 
-const DRAW_X = MARGIN;
-const DRAW_Y = MARGIN;
-const DRAW_W = PAGE_W - 2 * MARGIN;
-const DRAW_H = PAGE_H - 2 * MARGIN - TITLE_H;
+export const DRAW_X = MARGIN;
+export const DRAW_Y = MARGIN;
+export const DRAW_W = PAGE_W - 2 * MARGIN;
+export const DRAW_H = PAGE_H - 2 * MARGIN - TITLE_H;
 
-const TITLE_X = PAGE_W - MARGIN - TITLE_W;
-const TITLE_Y = PAGE_H - MARGIN - TITLE_H;
+export const TITLE_X = PAGE_W - MARGIN - TITLE_W;
+export const TITLE_Y = PAGE_H - MARGIN - TITLE_H;
 
 const FRAME_STROKE = 0.4;
 const FRAME_STROKE_OUTER = 0.6;
@@ -43,21 +43,26 @@ export interface RenderSvgInput {
   meta: ProjectMeta;
 }
 
+/** Legacy single-page export — renders the full live diagram on one A3 sheet. */
 export function renderDrawingSvg({ nodes, edges, meta }: RenderSvgInput): string {
   const diagram = renderDiagramArea(nodes, edges);
   const titleBlock = renderTitleBlock(meta);
   const frame = renderFrame();
+  return wrapSvg(`${frame}\n${diagram}\n${titleBlock}`);
+}
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE_W}mm" height="${PAGE_H}mm" viewBox="0 0 ${PAGE_W} ${PAGE_H}" style="background:white">
-${frame}
-${diagram}
-${titleBlock}
+export function wrapSvg(inner: string): string {
+  // Width/height as 100% lets the in-app preview fill its container while the
+  // PDF exporter overrides with explicit mm dimensions in its embed call, so
+  // both consumers behave correctly off the same string.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${PAGE_W} ${PAGE_H}" preserveAspectRatio="xMidYMid meet" style="background:white">
+${inner}
 </svg>`;
 }
 
 /* ----- Frame + zone numbering ------------------------------------------- */
 
-function renderFrame(): string {
+export function renderFrame(): string {
   const COLS = 8;
   const ROWS = 4;
   const colW = DRAW_W / COLS;
@@ -98,15 +103,23 @@ function renderFrame(): string {
 
 /* ----- Title block ------------------------------------------------------ */
 
-function renderTitleBlock(meta: ProjectMeta): string {
+export interface TitleBlockOptions {
+  /** Optional company logo (data URL or http URL). Rendered in the title row. */
+  logoDataUrl?: string | null;
+  /** Override the displayed sheet/totalSheets at render time. */
+  sheetOverride?: { sheet?: string; totalSheets?: string };
+}
+
+export function renderTitleBlock(
+  meta: ProjectMeta,
+  options: TitleBlockOptions = {},
+): string {
   const rows: string[] = [];
 
-  // Outer block
   rows.push(
     `<rect x="${TITLE_X}" y="${TITLE_Y}" width="${TITLE_W}" height="${TITLE_H}" fill="white" stroke="black" stroke-width="${FRAME_STROKE_OUTER}" />`,
   );
 
-  // Divisions: 3 columns × 4 rows -ish
   const colW = TITLE_W / 3;
   for (let i = 1; i < 3; i++) {
     const x = TITLE_X + i * colW;
@@ -131,7 +144,6 @@ function renderTitleBlock(meta: ProjectMeta): string {
   rows.push(cell(1, 1, "SCALE", meta.scale || "NTS"));
   rows.push(cell(2, 1, "REV", meta.revision || "0"));
 
-  // Big title row (rows 2-3, all 3 cols)
   rows.push(
     `<rect x="${TITLE_X}" y="${TITLE_Y + 2 * rowH}" width="${TITLE_W}" height="${rowH * 2}" fill="white" stroke="black" stroke-width="${FRAME_STROKE}" />`,
   );
@@ -144,24 +156,51 @@ function renderTitleBlock(meta: ProjectMeta): string {
   rows.push(
     textAt(TITLE_X + 2, TITLE_Y + 2 * rowH + 16, meta.drawingNumber || "", 3.2, "start", false),
   );
+  const sheet = options.sheetOverride?.sheet ?? meta.sheet ?? "1";
+  const total = options.sheetOverride?.totalSheets ?? meta.totalSheets ?? "1";
   rows.push(
     textAt(
       TITLE_X + TITLE_W - 2,
       TITLE_Y + TITLE_H - 2,
-      `SHEET ${meta.sheet || "1"} OF ${meta.totalSheets || "1"}`,
+      `SHEET ${sheet} OF ${total}`,
       2.8,
       "end",
     ),
   );
+
+  if (options.logoDataUrl) {
+    // Position the logo in the bottom-left of the title-block "TITLE" row so
+    // it sits beside the project title text. We use preserveAspectRatio so a
+    // non-square logo doesn't get squashed.
+    const logoBoxW = 26;
+    const logoBoxH = rowH * 2 - 3;
+    const lx = TITLE_X + TITLE_W - logoBoxW - 2;
+    const ly = TITLE_Y + 2 * rowH + 1.5;
+    rows.push(
+      `<image href="${options.logoDataUrl}" x="${lx}" y="${ly}" width="${logoBoxW}" height="${logoBoxH}" preserveAspectRatio="xMidYMid meet" />`,
+    );
+  }
 
   return `<g>${rows.join("")}</g>`;
 }
 
 /* ----- Diagram area ----------------------------------------------------- */
 
-function renderDiagramArea(nodes: DiagramNode[], edges: DiagramEdge[]): string {
-  // Clip to drawing area minus a small inner margin
-  const padding = 4;
+export interface DiagramAreaOptions {
+  /** Restrict the rendered window to the given world-space bounds instead of
+   *  auto-fitting all nodes. Used by the Drawings tab to reproduce a saved
+   *  viewport. */
+  bounds?: { minX: number; minY: number; maxX: number; maxY: number };
+  /** Inner padding inside the drawing region, in mm. */
+  padding?: number;
+}
+
+export function renderDiagramArea(
+  nodes: DiagramNode[],
+  edges: DiagramEdge[],
+  options: DiagramAreaOptions = {},
+): string {
+  const padding = options.padding ?? 4;
   const innerX = DRAW_X + padding;
   const innerY = DRAW_Y + padding;
   const innerW = DRAW_W - 2 * padding;
@@ -171,23 +210,76 @@ function renderDiagramArea(nodes: DiagramNode[], edges: DiagramEdge[]): string {
     return `<g>${textAt(innerX + innerW / 2, innerY + innerH / 2, "Drag P&ID symbols onto the canvas to start.", 4, "middle")}</g>`;
   }
 
-  const bounds = diagramBounds(nodes);
+  const bounds = options.bounds ?? diagramBounds(nodes);
   const dw = Math.max(1, bounds.maxX - bounds.minX);
   const dh = Math.max(1, bounds.maxY - bounds.minY);
   const scale = Math.min(innerW / dw, innerH / dh);
-  // Centre the diagram inside the drawing area
   const offsetX = innerX + (innerW - dw * scale) / 2 - bounds.minX * scale;
   const offsetY = innerY + (innerH - dh * scale) / 2 - bounds.minY * scale;
 
   const nodesById = new Map(nodes.map((n) => [n.id, n]));
 
-  const edgePaths = edges.map((edge) => renderEdge(edge, nodesById, scale, offsetX, offsetY)).filter(Boolean);
-  const nodeMarkup = nodes.map((n) => renderNode(n, scale, offsetX, offsetY));
+  // Render edges + symbols in WORLD coordinates inside a single inner group,
+  // then pose the whole group onto the page via translate(...) scale(...).
+  // This is critical: getSmoothStepPath has a built-in offset that confuses
+  // edges when called in tiny coordinate spaces — passing world coords lets
+  // the router produce the same elbows the editor does. Stroke widths use
+  // `vector-effect="non-scaling-stroke"` so they stay legible regardless of
+  // diagram size.
+  const innerEdges = edges
+    .map((edge) => renderEdgeWorld(edge, nodesById))
+    .filter(Boolean);
+  const innerNodes = nodes
+    .map((n) => renderNodeWorld(n))
+    .filter(Boolean);
 
-  return `<g class="diagram"><g class="edges">${edgePaths.join("")}</g><g class="nodes">${nodeMarkup.join("")}</g></g>`;
+  // Tags and edge labels render OUTSIDE the scaling group, in drawing-mm
+  // coordinates and at fixed mm font sizes. Pulling them out of the scale
+  // transform also means component tags stay axis-aligned even when the
+  // component itself is rotated — matching the editor where the label sits
+  // on the unrotated outer container.
+  const tagMarkup = nodes
+    .map((n) => renderNodeTag(n, scale, offsetX, offsetY))
+    .filter(Boolean)
+    .join("");
+  const edgeLabels = edges
+    .map((e) => renderEdgeLabel(e, nodesById, scale, offsetX, offsetY))
+    .filter(Boolean)
+    .join("");
+
+  return `<g class="diagram">
+    <g transform="translate(${offsetX.toFixed(3)} ${offsetY.toFixed(3)}) scale(${scale.toFixed(5)})">
+      <g class="edges">${innerEdges.join("")}</g>
+      <g class="nodes">${innerNodes.join("")}</g>
+    </g>
+    <g class="labels">${tagMarkup}${edgeLabels}</g>
+  </g>`;
 }
 
-function renderNode(
+function renderNodeWorld(node: DiagramNode): string {
+  const symbol = getSymbol(node.data.symbolType);
+  if (!symbol) return "";
+
+  const { Icon, size } = symbol;
+  const rotation = node.data.rotation ?? 0;
+
+  const innerSvg = styleSymbolForPrint(
+    renderToStaticMarkup(
+      <Icon width={size.width} height={size.height} />,
+    ),
+  );
+
+  // Only the SVG content is rotated — exactly like SymbolNode in the editor,
+  // where rotation lives on the inner icon wrapper and the outer container
+  // (which carries the label) stays axis-aligned.
+  return `<g transform="translate(${node.position.x.toFixed(3)} ${node.position.y.toFixed(3)}) ${
+    rotation
+      ? `rotate(${rotation} ${(size.width / 2).toFixed(3)} ${(size.height / 2).toFixed(3)})`
+      : ""
+  }">${innerSvg}</g>`;
+}
+
+function renderNodeTag(
   node: DiagramNode,
   scale: number,
   offsetX: number,
@@ -195,43 +287,32 @@ function renderNode(
 ): string {
   const symbol = getSymbol(node.data.symbolType);
   if (!symbol) return "";
-
-  const { Icon, size } = symbol;
-  const x = node.position.x * scale + offsetX;
-  const y = node.position.y * scale + offsetY;
-  const w = size.width * scale;
-  const h = size.height * scale;
-  const rotation = node.data.rotation ?? 0;
-
-  // Render the symbol's React component to static SVG markup.
-  const innerSvg = renderToStaticMarkup(
-    <Icon width={size.width} height={size.height} />,
-  );
-
   const tag = node.data.tag ?? node.data.label ?? symbol.defaultLabel ?? "";
-  const fontSize = Math.max(2.6, Math.min(4.5, h * 0.18));
-  const tagY = y + h + fontSize + 0.4;
+  if (!tag) return "";
 
-  return `<g transform="translate(${x.toFixed(3)} ${y.toFixed(3)}) ${
-    rotation
-      ? `rotate(${rotation} ${(w / 2).toFixed(3)} ${(h / 2).toFixed(3)})`
-      : ""
-  }" color="#0f172a">
-    <g transform="scale(${scale.toFixed(4)})">${innerSvg}</g>
-    ${
-      tag
-        ? `<text x="${(w / 2).toFixed(3)}" y="${(tagY - y).toFixed(3)}" text-anchor="middle" font-size="${fontSize.toFixed(2)}" font-family="Helvetica, Arial, sans-serif" fill="#0f172a">${escapeText(tag)}</text>`
-        : ""
-    }
-  </g>`;
+  const { size } = symbol;
+  const cx = (node.position.x + size.width / 2) * scale + offsetX;
+  const cy = (node.position.y + size.height) * scale + offsetY;
+  const fontSize = Math.max(2.6, Math.min(4.5, size.height * scale * 0.18));
+  const ty = cy + fontSize + 0.4;
+  return `<text x="${cx.toFixed(3)}" y="${ty.toFixed(3)}" text-anchor="middle" font-size="${fontSize.toFixed(2)}" font-family="Helvetica, Arial, sans-serif" fill="#0f172a">${escapeText(tag)}</text>`;
 }
 
-function renderEdge(
+/**
+ * Strip Tailwind colour classes from React-rendered symbol SVGs and bake in a
+ * dark stroke colour so the symbol stays sharp and legible on a white drawing
+ * sheet. The runtime CSS that powers the editor's dark theme would otherwise
+ * leak into static renders via `class="text-zinc-200"`, drowning the strokes.
+ */
+function styleSymbolForPrint(svg: string): string {
+  return svg
+    .replace(/\sclass="[^"]*"/g, "")
+    .replace(/currentColor/g, "#0f172a");
+}
+
+function renderEdgeWorld(
   edge: DiagramEdge,
   nodesById: Map<string, DiagramNode>,
-  scale: number,
-  offsetX: number,
-  offsetY: number,
 ): string {
   const source = nodesById.get(edge.source);
   const target = nodesById.get(edge.target);
@@ -240,25 +321,25 @@ function renderEdge(
   const s = portWorldPosition(source, edge.sourceHandle);
   const t = portWorldPosition(target, edge.targetHandle);
 
-  const sx = s.x * scale + offsetX;
-  const sy = s.y * scale + offsetY;
-  const tx = t.x * scale + offsetX;
-  const ty = t.y * scale + offsetY;
-
+  // World-space path generation. borderRadius matches the editor's PipeEdge
+  // (see Canvas/PipeEdge.tsx) so the elbows are identical between the live
+  // editor view and the rendered drawing.
   const [path] = getSmoothStepPath({
-    sourceX: sx,
-    sourceY: sy,
-    targetX: tx,
-    targetY: ty,
+    sourceX: s.x,
+    sourceY: s.y,
+    targetX: t.x,
+    targetY: t.y,
     sourcePosition: s.position,
     targetPosition: t.position,
-    borderRadius: 1.5,
+    borderRadius: 8,
   });
 
   const lineType = edge.data?.lineType ?? "process";
   const style = LINE_STYLES[lineType];
 
-  // Convert React Flow stroke (pixels) -> mm, roughly: 1 stylepx ≈ 0.3 mm
+  // With vector-effect="non-scaling-stroke" both stroke-width and
+  // stroke-dasharray are interpreted in the SVG root's user units (mm here),
+  // so we express them directly in drawing-mm rather than world units.
   const baseW = style.strokeWidth * 0.18;
   const dash = style.strokeDasharray
     ? style.strokeDasharray
@@ -269,30 +350,33 @@ function renderEdge(
 
   const primary = `<path d="${path}" fill="none" stroke="#0f172a" stroke-width="${baseW.toFixed(3)}" ${
     dash ? `stroke-dasharray="${dash}"` : ""
-  } />`;
+  } vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" />`;
 
   const overlay =
     style.pattern === "hash"
-      ? `<path d="${path}" fill="none" stroke="#0f172a" stroke-width="${(baseW + 0.7).toFixed(3)}" stroke-dasharray="0.2 2" />`
+      ? `<path d="${path}" fill="none" stroke="#0f172a" stroke-width="${(baseW + 0.7).toFixed(3)}" stroke-dasharray="0.2 2" vector-effect="non-scaling-stroke" />`
       : "";
 
-  const label = edge.data?.tag
-    ? labelAlongPath(sx, sy, tx, ty, edge.data.tag)
-    : "";
-
-  return primary + overlay + label;
+  return primary + overlay;
 }
 
-function labelAlongPath(
-  sx: number,
-  sy: number,
-  tx: number,
-  ty: number,
-  text: string,
+function renderEdgeLabel(
+  edge: DiagramEdge,
+  nodesById: Map<string, DiagramNode>,
+  scale: number,
+  offsetX: number,
+  offsetY: number,
 ): string {
-  const mx = (sx + tx) / 2;
-  const my = (sy + ty) / 2 - 1;
-  return textAt(mx, my, text, 2.4, "middle");
+  const tag = edge.data?.tag;
+  if (!tag) return "";
+  const source = nodesById.get(edge.source);
+  const target = nodesById.get(edge.target);
+  if (!source || !target) return "";
+  const s = portWorldPosition(source, edge.sourceHandle);
+  const t = portWorldPosition(target, edge.targetHandle);
+  const mx = ((s.x + t.x) / 2) * scale + offsetX;
+  const my = ((s.y + t.y) / 2) * scale + offsetY - 1;
+  return textAt(mx, my, tag, 2.4, "middle");
 }
 
 /* ----- SVG primitives --------------------------------------------------- */
@@ -301,7 +385,7 @@ function line(x1: number, y1: number, x2: number, y2: number): string {
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="black" stroke-width="${FRAME_STROKE}" />`;
 }
 
-function textAt(
+export function textAt(
   x: number,
   y: number,
   text: string,
@@ -314,7 +398,7 @@ function textAt(
   } fill="#0f172a">${escapeText(text)}</text>`;
 }
 
-function escapeText(text: string): string {
+export function escapeText(text: string): string {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

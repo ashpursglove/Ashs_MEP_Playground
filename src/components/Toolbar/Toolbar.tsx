@@ -23,6 +23,7 @@ import { RecentMenu } from "./RecentMenu";
 const TABS: { id: AppTab; label: string }[] = [
   { id: "editor", label: "Editor" },
   { id: "analysis", label: "Analysis" },
+  { id: "drawings", label: "Drawings" },
 ];
 
 export function Toolbar() {

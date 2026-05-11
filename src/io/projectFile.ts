@@ -7,8 +7,9 @@
 
 import type { DiagramEdge, DiagramNode } from "@/store/diagramStore";
 import type { Fluid, ProjectMeta } from "@/store/projectStore";
+import type { DrawingPage } from "@/store/drawingsStore";
 
-export const LATEST_VERSION = 1 as const;
+export const LATEST_VERSION = 2 as const;
 
 export interface ProjectFileV1 {
   version: 1;
@@ -21,6 +22,13 @@ export interface ProjectFileV1 {
   analyses: ProjectAnalysisV1[];
 }
 
+/** V2 adds the Drawings tab payload: pages + a project-wide company logo. */
+export interface ProjectFileV2 extends Omit<ProjectFileV1, "version"> {
+  version: 2;
+  drawings: DrawingPage[];
+  companyLogo: string | null;
+}
+
 export interface ProjectAnalysisV1 {
   id: string;
   name: string;
@@ -29,7 +37,7 @@ export interface ProjectAnalysisV1 {
   results?: unknown;
 }
 
-export type ProjectFile = ProjectFileV1;
+export type ProjectFile = ProjectFileV2;
 
 export interface SerialiseInput {
   meta: ProjectMeta;
@@ -37,6 +45,8 @@ export interface SerialiseInput {
   nodes: DiagramNode[];
   edges: DiagramEdge[];
   analyses?: ProjectAnalysisV1[];
+  drawings?: DrawingPage[];
+  companyLogo?: string | null;
 }
 
 export function serialise(input: SerialiseInput): string {
@@ -49,6 +59,8 @@ export function serialise(input: SerialiseInput): string {
       edges: input.edges,
     },
     analyses: input.analyses ?? [],
+    drawings: input.drawings ?? [],
+    companyLogo: input.companyLogo ?? null,
   };
   return JSON.stringify(file, null, 2);
 }
@@ -84,9 +96,15 @@ export function deserialise(text: string): ProjectFile {
  * function for clarity. Add new steps below the existing ones.
  */
 function migrate(raw: Record<string, unknown>): ProjectFile {
-  const current = raw;
+  let current: Record<string, unknown> = raw;
   if (current.version === 1) {
-    return validateV1(current);
+    current = migrateV1toV2(validateV1(current)) as unknown as Record<
+      string,
+      unknown
+    >;
+  }
+  if (current.version === 2) {
+    return validateV2(current);
   }
   throw new ProjectParseError(
     `Unknown project file version: ${current.version}`,
@@ -114,5 +132,29 @@ function validateV1(raw: Record<string, unknown>): ProjectFileV1 {
     analyses: Array.isArray(raw.analyses)
       ? (raw.analyses as ProjectAnalysisV1[])
       : [],
+  };
+}
+
+function migrateV1toV2(v1: ProjectFileV1): ProjectFileV2 {
+  return {
+    ...v1,
+    version: 2,
+    drawings: [],
+    companyLogo: null,
+  };
+}
+
+function validateV2(raw: Record<string, unknown>): ProjectFileV2 {
+  const v1 = validateV1({ ...raw, version: 1 });
+  const drawings = Array.isArray(raw.drawings)
+    ? (raw.drawings as DrawingPage[])
+    : [];
+  const companyLogo =
+    typeof raw.companyLogo === "string" ? raw.companyLogo : null;
+  return {
+    ...v1,
+    version: 2,
+    drawings,
+    companyLogo,
   };
 }

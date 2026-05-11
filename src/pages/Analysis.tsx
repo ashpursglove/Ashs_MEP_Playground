@@ -1,13 +1,21 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, HelpCircle, Info, Play } from "lucide-react";
+import {
+  AlertTriangle,
+  HelpCircle,
+  Info,
+  Play,
+  Send,
+} from "lucide-react";
 
 import { useDiagramStore } from "@/store/diagramStore";
 import { useProjectStore } from "@/store/projectStore";
 import { useUIStore } from "@/store/uiStore";
+import { newPageId, useDrawingsStore } from "@/store/drawingsStore";
 import { toEngineGraph } from "@/engine/adapter";
-import { NoPathError } from "@/engine/path";
+import { extractPath, NoPathError } from "@/engine/path";
 import { solve } from "@/engine/solver";
 import type { SinglePathResult } from "@/engine/types";
+import { paginateAnalysisComponents } from "@/io/drawingsRender";
 import { TextInput } from "@/components/Inspector/fields/TextInput";
 import { Select } from "@/components/Inspector/fields/Select";
 import { PresetDropdown } from "@/components/Inspector/PresetDropdown";
@@ -55,6 +63,76 @@ export function Analysis() {
 
   const [result, setResult] = useState<SinglePathResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const addDrawingPage = useDrawingsStore((s) => s.addPage);
+  const drawingPages = useDrawingsStore((s) => s.pages);
+
+  function sendReportToDrawings() {
+    if (!result || !fluid) return;
+    const startNode = nodes.find((n) => n.id === startId);
+    const endNode = nodes.find((n) => n.id === endId);
+    const startLabel = startNode?.data.tag || startNode?.data.label || startId;
+    const endLabel = endNode?.data.tag || endNode?.data.label || endId;
+
+    // Re-extract the path so we capture the exact set of nodes/edges that the
+    // route preview is currently highlighting — frozen onto the drawing page
+    // so future edits to the live diagram don't invalidate the report.
+    let pathNodeIds: string[] = [];
+    let pathEdgeIds: string[] = [];
+    try {
+      const g = toEngineGraph(nodes, edges);
+      const path = extractPath(g, startId, endId);
+      pathNodeIds = path.map((s) => s.node.id);
+      pathEdgeIds = path.filter((s) => s.edge).map((s) => s.edge!.id);
+    } catch {
+      // Solve succeeded so a path exists, but if extraction fails fall through
+      // with empty highlight sets — the page still renders, just without the
+      // amber overlay.
+    }
+
+    const idx = drawingPages.filter((p) => p.type === "analysis").length + 1;
+
+    // Partition the component breakdown across as many sheets as it takes to
+    // fit. The first sheet always carries the route preview + KPI cards;
+    // subsequent sheets are continuation pages with only the breakdown.
+    const slices = paginateAnalysisComponents(result.components);
+    const total = slices.length;
+    const frozenNodes = structuredClone(nodes);
+    const frozenEdges = structuredClone(edges);
+
+    slices.forEach((slice, pageIdx) => {
+      const isCont = pageIdx > 0;
+      const pageSuffix =
+        total > 1 ? ` — page ${pageIdx + 1}/${total}` : "";
+      addDrawingPage({
+        id: newPageId(),
+        title: isCont
+          ? `Analysis (cont.) — ${startLabel} → ${endLabel} (#${idx})${pageSuffix}`
+          : `Analysis — ${startLabel} → ${endLabel} (#${idx})${pageSuffix}`,
+        type: "analysis",
+        titleBlock: {},
+        annotations: [],
+        analysis: {
+          startId,
+          endId,
+          startLabel,
+          endLabel,
+          fluidName: fluid.name,
+          mode,
+          targetQM3h: mode === "inverse" ? targetQM3h : undefined,
+          result,
+          // Continuation pages don't draw the route preview so they don't
+          // need the diagram payload — keep the .pid file lean.
+          nodes: isCont ? [] : frozenNodes,
+          edges: isCont ? [] : frozenEdges,
+          pathNodeIds: isCont ? [] : pathNodeIds,
+          pathEdgeIds: isCont ? [] : pathEdgeIds,
+          pageIndex: pageIdx,
+          totalPages: total,
+          componentSlice: { start: slice.start, end: slice.end },
+        },
+      });
+    });
+  }
 
   const nodeOptions = useMemo(
     () =>
@@ -317,7 +395,15 @@ export function Analysis() {
           startId={startId}
           endId={endId}
         />
-        {result ? <ResultView result={result} mode={mode} /> : <EmptyState />}
+        {result ? (
+          <ResultView
+            result={result}
+            mode={mode}
+            onSendToDrawings={sendReportToDrawings}
+          />
+        ) : (
+          <EmptyState />
+        )}
       </main>
     </div>
   );
@@ -326,12 +412,35 @@ export function Analysis() {
 function ResultView({
   result,
   mode,
+  onSendToDrawings,
 }: {
   result: SinglePathResult;
   mode: Mode;
+  onSendToDrawings: () => void;
 }) {
+  const [sent, setSent] = useState(false);
+  function handleSend() {
+    onSendToDrawings();
+    setSent(true);
+    window.setTimeout(() => setSent(false), 1500);
+  }
   return (
     <div className="flex flex-col">
+      <div className="flex items-center justify-between border-b border-zinc-800 bg-[var(--color-panel)] px-3 py-1.5">
+        <span className="text-[11px] uppercase tracking-wider text-zinc-500">
+          Result
+        </span>
+        <button
+          type="button"
+          onClick={handleSend}
+          title="Add this report as a new page in the Drawings tab"
+          className="flex items-center gap-1.5 rounded border border-zinc-700 bg-[var(--color-panel-2)] px-2.5 py-1 text-[11px] text-zinc-200 transition hover:border-sky-500 hover:text-sky-200"
+        >
+          <Send size={11} />
+          {sent ? "Sent ✓" : "Send report to Drawings"}
+        </button>
+      </div>
+
       <PlainEnglishSummary result={result} mode={mode} />
 
       <div className="grid grid-cols-4 gap-2 border-b border-zinc-800 p-3 text-xs">
