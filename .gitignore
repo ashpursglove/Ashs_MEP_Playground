@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+src-tauri/target
+src-tauri/gen
+
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.log
+*.tsbuildinfo

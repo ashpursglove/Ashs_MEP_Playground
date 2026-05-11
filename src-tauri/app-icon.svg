@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="180" fill="url(#bg)"/>
+  <g fill="none" stroke="#7dd3fc" stroke-width="36" stroke-linejoin="round" stroke-linecap="round">
+    <!-- centrifugal pump glyph: circle + triangle -->
+    <circle cx="512" cy="560" r="220"/>
+    <path d="M 292 780 L 732 780 L 512 348 Z"/>
+    <!-- inlet pipe -->
+    <line x1="160" y1="560" x2="292" y2="560"/>
+    <!-- outlet pipe -->
+    <line x1="512" y1="348" x2="512" y2="180"/>
+  </g>
+</svg>
