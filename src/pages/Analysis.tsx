@@ -3,6 +3,7 @@ import { AlertTriangle, HelpCircle, Info, Play } from "lucide-react";
 
 import { useDiagramStore } from "@/store/diagramStore";
 import { useProjectStore } from "@/store/projectStore";
+import { useUIStore } from "@/store/uiStore";
 import { toEngineGraph } from "@/engine/adapter";
 import { NoPathError } from "@/engine/path";
 import { solve } from "@/engine/solver";
@@ -29,11 +30,29 @@ export function Analysis() {
   const addFluid = useProjectStore((s) => s.addFluid);
   const updateFluid = useProjectStore((s) => s.updateFluid);
 
-  const [startId, setStartId] = useState<string>("");
-  const [endId, setEndId] = useState<string>("");
-  const [fluidId, setFluidId] = useState<string>(fluids[0]?.id ?? "");
-  const [mode, setMode] = useState<Mode>("forward");
-  const [targetQM3h, setTargetQM3h] = useState<number>(50);
+  // Persist these picks in the UI store so swapping to the editor and back
+  // doesn't wipe the From/To/fluid selections.
+  const startId = useUIStore((s) => s.analysisStartId);
+  const endId = useUIStore((s) => s.analysisEndId);
+  const storedFluidId = useUIStore((s) => s.analysisFluidId);
+  const mode = useUIStore((s) => s.analysisMode);
+  const targetQM3h = useUIStore((s) => s.analysisTargetQM3h);
+  const setAnalysisSelection = useUIStore((s) => s.setAnalysisSelection);
+
+  // Resolve the fluid: explicit pick if still valid, otherwise the first
+  // available fluid (water 20 °C by default).
+  const fluidId =
+    storedFluidId && fluids.some((f) => f.id === storedFluidId)
+      ? storedFluidId
+      : fluids[0]?.id ?? "";
+
+  const setStartId = (v: string) => setAnalysisSelection({ startId: v });
+  const setEndId = (v: string) => setAnalysisSelection({ endId: v });
+  const setFluidId = (v: string) => setAnalysisSelection({ fluidId: v });
+  const setMode = (v: Mode) => setAnalysisSelection({ mode: v });
+  const setTargetQM3h = (v: number) =>
+    setAnalysisSelection({ targetQM3h: v });
+
   const [result, setResult] = useState<SinglePathResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -634,32 +653,143 @@ function ComponentsTable({ result }: { result: SinglePathResult }) {
         </thead>
         <tbody>
           {result.components.map((c, i) => (
-            <tr
-              key={i}
-              className="border-t border-zinc-800 text-zinc-300 odd:bg-zinc-950 even:bg-[var(--color-panel)]"
-            >
-              <td className="px-2 py-1">{c.label}</td>
-              <td className="px-2 py-1 capitalize">{c.kind}</td>
-              <td className="px-2 py-1 text-right">
-                {(c.deltaPpa / 1e5).toFixed(4)}
-              </td>
-              <td className="px-2 py-1 text-right">{c.headM.toFixed(3)}</td>
-              <td className="px-2 py-1 text-right">
-                {c.velocityMs != null ? c.velocityMs.toFixed(2) : "—"}
-              </td>
-              <td className="px-2 py-1">
-                <RegimeBadge re={c.reynolds} />
-              </td>
-              <td className="px-2 py-1 text-right">
-                {c.reynolds != null
-                  ? Math.round(c.reynolds).toLocaleString()
-                  : "—"}
-              </td>
-            </tr>
+            <ComponentRow key={i} c={c} />
           ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function ComponentRow({ c }: { c: SinglePathResult["components"][number] }) {
+  const isPipe = c.kind === "pipe";
+  return (
+    <>
+      <tr className="border-t border-zinc-800 text-zinc-300 odd:bg-zinc-950 even:bg-[var(--color-panel)]">
+        <td className="px-2 py-1 font-medium text-zinc-100">{c.label}</td>
+        <td className="px-2 py-1 capitalize">{c.kind}</td>
+        <td className="px-2 py-1 text-right">
+          {(c.deltaPpa / 1e5).toFixed(4)}
+        </td>
+        <td className="px-2 py-1 text-right">{c.headM.toFixed(3)}</td>
+        <td className="px-2 py-1 text-right">
+          {c.velocityMs != null ? c.velocityMs.toFixed(2) : "—"}
+        </td>
+        <td className="px-2 py-1">
+          <RegimeBadge re={c.reynolds} />
+        </td>
+        <td className="px-2 py-1 text-right">
+          {c.reynolds != null
+            ? Math.round(c.reynolds).toLocaleString()
+            : "—"}
+        </td>
+      </tr>
+      {isPipe && <PipeBreakdownRow c={c} />}
+    </>
+  );
+}
+
+function PipeBreakdownRow({
+  c,
+}: {
+  c: SinglePathResult["components"][number];
+}) {
+  const frac = (v?: number) => {
+    if (v == null || c.headM === 0) return null;
+    return (v / c.headM) * 100;
+  };
+  const friction = c.frictionHeadM;
+  const fittings = c.fittingsHeadM;
+  const elev = c.elevationHeadM;
+
+  const dim = (v?: number) => (typeof v === "number" ? v.toFixed(2) : "?");
+
+  return (
+    <tr className="border-t border-zinc-900 text-[11px] text-zinc-500 odd:bg-zinc-950 even:bg-[var(--color-panel)]">
+      <td colSpan={7} className="px-3 py-2">
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
+          <div className="min-w-[220px] flex-1">
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-zinc-500">
+              Loss breakdown
+            </p>
+            <ul className="space-y-0.5 font-mono text-[11px] text-zinc-300">
+              <BreakdownLine
+                label="Friction (pipe wall)"
+                value={friction}
+                pct={frac(friction)}
+              />
+              <BreakdownLine
+                label="Fittings (minor losses)"
+                value={fittings}
+                pct={frac(fittings)}
+              />
+              <BreakdownLine
+                label={
+                  (elev ?? 0) >= 0 ? "Elevation rise" : "Elevation drop (recovers head)"
+                }
+                value={elev}
+                pct={frac(elev)}
+              />
+            </ul>
+          </div>
+          <div className="min-w-[220px] flex-1">
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-zinc-500">
+              Pipe geometry
+            </p>
+            <ul className="space-y-0.5 text-[11px] text-zinc-400">
+              <li>
+                Length:{" "}
+                <span className="font-mono text-zinc-200">{dim(c.lengthM)} m</span>
+              </li>
+              <li>
+                Inner ⌀:{" "}
+                <span className="font-mono text-zinc-200">
+                  {dim(c.innerDiameterMm)} mm
+                </span>
+              </li>
+              <li>
+                Wall roughness:{" "}
+                <span className="font-mono text-zinc-200">
+                  {dim(c.roughnessMm)} mm
+                </span>
+              </li>
+              <li>
+                Fittings:{" "}
+                <span className="text-zinc-200">{c.fittingsSummary ?? "—"}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function BreakdownLine({
+  label,
+  value,
+  pct,
+}: {
+  label: string;
+  value: number | undefined;
+  pct: number | null;
+}) {
+  if (value == null) return null;
+  const sign = value >= 0 ? "+" : "−";
+  const mag = Math.abs(value);
+  return (
+    <li className="flex justify-between gap-3">
+      <span className="text-zinc-400">{label}</span>
+      <span className="tabular-nums">
+        {sign}
+        {mag.toFixed(3)} m
+        {pct != null && (
+          <span className="ml-2 text-zinc-600">
+            ({pct >= 0 ? pct.toFixed(0) : `−${Math.abs(pct).toFixed(0)}`} %)
+          </span>
+        )}
+      </span>
+    </li>
   );
 }
 

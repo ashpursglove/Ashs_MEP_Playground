@@ -12,11 +12,16 @@ export function CentrifugalPump({ width, height, selected }: SymbolIconProps) {
       strokeWidth={1.5}
       strokeLinejoin="round"
     >
-      {/* Triangle inscribed in the circle: apex at top (12 o'clock), base at 30° / 150° */}
-      <circle cx={32} cy={36} r={18} />
-      <path d="M 32 18 L 47.59 45 L 16.41 45 Z" />
-      <line x1={12} y1={36} x2={14} y2={36} />
-      <line x1={32} y1={14} x2={32} y2={18} />
+      {/* Circle centred in the 64×64 box so the suction (bottom) and discharge
+          (top) nozzles sit symmetrically across the impeller. The inscribed
+          equilateral triangle has its apex at 12 o'clock (pointing toward the
+          discharge) and its base at the 7 and 5 o'clock positions. */}
+      <circle cx={32} cy={32} r={18} />
+      <path d="M 32 14 L 47.59 41 L 16.41 41 Z" />
+      {/* Discharge nozzle stub (top) */}
+      <line x1={32} y1={2} x2={32} y2={14} />
+      {/* Suction nozzle stub (bottom — 180° from discharge) */}
+      <line x1={32} y1={50} x2={32} y2={62} />
     </svg>
   );
 }

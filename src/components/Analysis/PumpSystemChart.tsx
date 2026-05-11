@@ -135,7 +135,7 @@ export function PumpSystemChart({ result }: PumpSystemChartProps) {
         <Maximize2 size={10} /> Reset view
       </button>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 28, right: 18, left: 8, bottom: 14 }}>
+        <LineChart data={data} margin={{ top: 36, right: 18, left: 8, bottom: 28 }}>
           <CartesianGrid stroke="#27272a" strokeDasharray="2 3" />
           <XAxis
             dataKey="q"
@@ -147,8 +147,11 @@ export function PumpSystemChart({ result }: PumpSystemChartProps) {
             tickFormatter={fmtNumber}
             label={{
               value: "Q (m³/h)",
-              position: "insideBottom",
-              offset: -6,
+              // Pin the X-axis label just below the tick line. The legend
+              // sits at the top of the chart now, so we don't have to share
+              // bottom margin with it.
+              position: "bottom",
+              offset: 14,
               fill: "#71717a",
               fontSize: 11,
             }}
@@ -182,7 +185,12 @@ export function PumpSystemChart({ result }: PumpSystemChartProps) {
               typeof v === "number" ? `${fmtNumber(v)} m` : `${v}`
             }
           />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Legend
+            verticalAlign="top"
+            align="center"
+            height={20}
+            wrapperStyle={{ fontSize: 11 }}
+          />
           {result.elevationDeltaM > 0.05 && (
             <ReferenceLine
               y={result.elevationDeltaM}

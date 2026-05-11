@@ -65,16 +65,14 @@ export function FittingsEditor({ value, onChange }: FittingsEditorProps) {
         <p className="px-1 text-[11px] text-zinc-500">No fittings.</p>
       )}
       {items.map((f, i) => (
-        <div key={i} className="grid grid-cols-[1fr_60px_44px_auto] gap-1">
+        <div
+          key={i}
+          className="grid grid-cols-[1fr_44px_auto] items-center gap-1"
+        >
           <Select
             value={f.kind}
             options={PRESET_OPTIONS}
             onChange={(v) => applyPreset(i, v)}
-          />
-          <TextInput
-            type="number"
-            value={String(f.k)}
-            onChange={(v) => update(i, { k: parseNumber(v) })}
           />
           <TextInput
             type="number"
@@ -93,6 +91,10 @@ export function FittingsEditor({ value, onChange }: FittingsEditorProps) {
           >
             <Trash2 size={12} />
           </button>
+          <span className="col-span-3 px-1 text-[10px] text-zinc-500">
+            K = {f.k.toFixed(2)} (from preset) · sized to the pipe's inner
+            diameter automatically.
+          </span>
         </div>
       ))}
       <button
@@ -102,6 +104,10 @@ export function FittingsEditor({ value, onChange }: FittingsEditorProps) {
       >
         <Plus size={12} /> add fitting
       </button>
+      <p className="mt-1 px-1 text-[10px] leading-snug text-zinc-500">
+        Pick the type and how many. Each fitting's K-value comes from the
+        preset and its velocity uses this pipe's bore in the loss calculation.
+      </p>
     </div>
   );
 }

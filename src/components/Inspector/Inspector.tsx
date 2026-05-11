@@ -606,6 +606,7 @@ function ValveSizeSection({
 function EdgeForm({ edgeId }: { edgeId: string }) {
   const edge = useDiagramStore((s) => s.edges.find((e) => e.id === edgeId));
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
+  const setLastPipePreset = useDiagramStore((s) => s.setLastPipePreset);
 
   if (!edge) return null;
 
@@ -640,6 +641,8 @@ function EdgeForm({ edgeId }: { edgeId: string }) {
       if (v) {
         Object.assign(nextPipe, v);
       }
+      // Remember this choice as the default for the next pipe the user draws.
+      setLastPipePreset(m, n);
     }
     updateEdgeData(edgeId, { pipe: nextPipe });
   }

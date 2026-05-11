@@ -72,6 +72,10 @@ export const DEFAULT_FLUID: Fluid = {
   densityKgM3: 998.2,
   viscosityPaS: 1.002e-3,
   temperatureC: 20,
+  // Pre-populated so the Analysis fluid pickers show "Water & brine" / "Water (20 °C)"
+  // out of the box instead of empty placeholders.
+  presetCategory: "water",
+  presetId: "water-20",
 };
 
 export const useProjectStore = create<ProjectState>((set, get) => ({

@@ -255,7 +255,9 @@ export const SYMBOL_REGISTRY: Record<string, SymbolDef> = {
     label: "Centrifugal pump",
     size: { width: 64, height: 64 },
     ports: [
-      { id: "suction", side: "left", position: 0.56 },
+      // Suction enters axially at the impeller eye (bottom of the symbol)
+      // and discharge leaves at the top of the volute — 180° apart.
+      { id: "suction", side: "bottom", position: 0.5 },
       { id: "discharge", side: "top", position: 0.5 },
     ],
     tagPrefix: "P",
@@ -288,8 +290,9 @@ export const SYMBOL_REGISTRY: Record<string, SymbolDef> = {
     label: "Vertical centrifugal pump",
     size: { width: 56, height: 80 },
     ports: [
+      // In-line pump: suction at the bottom, discharge straight up.
       { id: "suction", side: "bottom", position: 0.5 },
-      { id: "discharge", side: "right", position: 0.2 },
+      { id: "discharge", side: "top", position: 0.5 },
     ],
     tagPrefix: "P",
     engineModel: "pump",

@@ -271,7 +271,9 @@ function buildResult(args: {
     args;
   const components: ComponentLoss[] = [];
 
-  for (const step of path) {
+  for (let i = 0; i < path.length; i++) {
+    const step = path[i];
+    const nextStep = path[i + 1];
     if (step.node.engineModel === "pump" && pumpCurve) {
       const head = pumpCurve.headAtQM3s(qM3s);
       components.push({
@@ -291,16 +293,31 @@ function buildResult(args: {
         headM: paToHead(dp, input.fluid),
       });
     }
-    if (step.edge) {
+    if (step.edge && nextStep) {
       const loss = pipeLoss(step.edge, qM3s, input.fluid);
+      const fromTag = step.node.tag ?? step.node.id;
+      const toTag = nextStep.node.tag ?? nextStep.node.id;
+      const fittings = step.edge.pipe.fittings ?? [];
+      const fittingsSummary = fittings.length
+        ? fittings
+            .map((f) => `${f.count}× ${humaniseFittingKind(f.kind)}`)
+            .join(", ")
+        : "none";
       components.push({
         edgeId: step.edge.id,
-        label: `pipe ${step.node.tag ?? step.node.id} → next`,
+        label: `Pipe ${fromTag} → ${toTag}`,
         kind: "pipe",
         deltaPpa: loss.totalPa,
         headM: paToHead(loss.totalPa, input.fluid),
         reynolds: loss.reynolds,
         velocityMs: loss.velocityMs,
+        frictionHeadM: paToHead(loss.frictionPa, input.fluid),
+        fittingsHeadM: paToHead(loss.fittingsPa, input.fluid),
+        elevationHeadM: paToHead(loss.elevationPa, input.fluid),
+        lengthM: step.edge.pipe.lengthM,
+        innerDiameterMm: step.edge.pipe.innerDiameterMm,
+        roughnessMm: step.edge.pipe.roughnessMm,
+        fittingsSummary,
       });
     }
   }
@@ -444,4 +461,24 @@ function focusedSamples(
     }
   }
   return [...out].sort((a, b) => a - b);
+}
+
+/**
+ * Convert the internal fitting kind ids (e.g. "elbow-90-standard") into a
+ * compact label suitable for the analysis-table summary line.
+ */
+function humaniseFittingKind(kind: string): string {
+  const map: Record<string, string> = {
+    "elbow-90-standard": "90° elbow",
+    "elbow-90-long": "90° LR elbow",
+    "elbow-45": "45° elbow",
+    "tee-through": "tee (run)",
+    "tee-branch": "tee (branch)",
+    "gate-open": "gate (open)",
+    "ball-open": "ball (open)",
+    "check-swing": "swing check",
+    "entrance-sharp": "sharp entrance",
+    exit: "exit",
+  };
+  return map[kind] ?? kind.replace(/-/g, " ");
 }

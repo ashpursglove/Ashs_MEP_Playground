@@ -71,6 +71,19 @@ export interface ComponentLoss {
   reynolds?: number;
   /** Velocity m/s (pipes only). */
   velocityMs?: number;
+  /* ----- Pipe-only breakdown of where the head loss is going --------- */
+  /** Friction (Darcy-Weisbach) component, m. */
+  frictionHeadM?: number;
+  /** Sum of all fittings' minor-loss head, m. */
+  fittingsHeadM?: number;
+  /** Static elevation gain (+) or drop (−), m. */
+  elevationHeadM?: number;
+  /* ----- Pipe geometry that produced the breakdown ------------------- */
+  lengthM?: number;
+  innerDiameterMm?: number;
+  roughnessMm?: number;
+  /** Short human-readable summary of fittings on this pipe. */
+  fittingsSummary?: string;
 }
 
 /** Why the operating point we returned isn't physically achievable, if so. */

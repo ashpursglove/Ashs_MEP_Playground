@@ -12,6 +12,7 @@ import {
 } from "@xyflow/react";
 
 import type { LineType, PipeEdgeData, SymbolNodeData } from "@/types/diagram";
+import { resolvePipePreset, type PipeMaterialId } from "@/presets/pipes";
 
 export type DiagramNode = Node<SymbolNodeData>;
 export type DiagramEdge = Edge<PipeEdgeData>;
@@ -45,6 +46,15 @@ interface DiagramState {
 
   nextLineType: LineType;
   setNextLineType: (lineType: LineType) => void;
+
+  /**
+   * Sticky pipe preset applied to every new process line. Starts at PVC DN50
+   * and updates whenever the user picks a different material/size in the
+   * inspector, so the next line they draw inherits the same choice.
+   */
+  lastPipeMaterial: PipeMaterialId;
+  lastPipeNominal: string;
+  setLastPipePreset: (material: PipeMaterialId, nominal: string) => void;
 }
 
 export const useDiagramStore = create<DiagramState>()(
@@ -61,17 +71,34 @@ export const useDiagramStore = create<DiagramState>()(
       onEdgesChange: (changes) =>
         set({ edges: applyEdgeChanges(changes, get().edges) }),
 
-      onConnect: (connection) =>
+      onConnect: (connection) => {
+        const lineType = get().nextLineType;
+        const data: PipeEdgeData = { lineType };
+        // Only process pipes carry hydraulic properties; utility/pneumatic
+        // signal lines just need the line type.
+        if (lineType === "process") {
+          const m = get().lastPipeMaterial;
+          const n = get().lastPipeNominal;
+          const preset = resolvePipePreset(m, n);
+          if (preset) {
+            data.pipe = {
+              innerDiameterMm: preset.innerDiameterMm,
+              roughnessMm: preset.roughnessMm,
+              presetMaterialId: m,
+              presetNominalId: n,
+              fittings: [],
+              // length & elevation are deliberately left undefined so the
+              // user is forced to enter the real route geometry.
+            };
+          }
+        }
         set({
           edges: addEdge<DiagramEdge>(
-            {
-              ...connection,
-              type: "pipe",
-              data: { lineType: get().nextLineType },
-            },
+            { ...connection, type: "pipe", data },
             get().edges,
           ),
-        }),
+        });
+      },
 
       /**
        * Set by the UI before a connection is created so onConnect can stamp the
@@ -79,6 +106,11 @@ export const useDiagramStore = create<DiagramState>()(
        */
       nextLineType: "process",
       setNextLineType: (lineType) => set({ nextLineType: lineType }),
+
+      lastPipeMaterial: "pvc",
+      lastPipeNominal: "dn50",
+      setLastPipePreset: (material, nominal) =>
+        set({ lastPipeMaterial: material, lastPipeNominal: nominal }),
 
       onSelectionChange: ({ nodes, edges }) =>
         set({

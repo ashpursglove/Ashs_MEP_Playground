@@ -50,13 +50,19 @@ export function DiaphragmPump(props: SymbolIconProps) {
   );
 }
 
-/** Vertical centrifugal (in-line / multistage) pump — taller body, inscribed triangle. */
+/** Vertical centrifugal (in-line / multistage) pump — tall body, inscribed
+ * triangle, in-line discharge (top) and suction (bottom) nozzles. The custom
+ * viewBox matches the registered footprint (56×80) so the rect and triangle
+ * fill the full vertical extent of the symbol rather than being letter-boxed. */
 export function VerticalCentrifugalPump(props: SymbolIconProps) {
   return (
-    <SvgFrame {...props}>
-      <rect x={20} y={6} width={24} height={52} rx={4} />
-      <path d="M 32 18 L 42 44 L 22 44 Z" />
-      <line x1={32} y1={6} x2={32} y2={2} />
+    <SvgFrame {...props} viewBox="0 0 56 80">
+      <rect x={14} y={10} width={28} height={60} rx={4} />
+      <path d="M 28 18 L 40 56 L 16 56 Z" />
+      {/* Discharge stub (top) */}
+      <line x1={28} y1={2} x2={28} y2={10} />
+      {/* Suction stub (bottom) */}
+      <line x1={28} y1={70} x2={28} y2={78} />
     </SvgFrame>
   );
 }
