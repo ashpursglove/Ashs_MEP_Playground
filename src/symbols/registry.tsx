@@ -44,6 +44,19 @@ import {
   TwoPhaseSeparator,
 } from "@/symbols/equipment/separation";
 import { AgitatedTank, StaticMixer } from "@/symbols/equipment/mixing";
+import {
+  BiomassCollectionVessel,
+  BioreactorRaceway,
+  ChemicalDrum,
+  IbcContainer,
+  MovingBedBioreactor,
+  OxygenCone,
+  PaddlewheelAerator,
+  ProteinSkimmer,
+  RoundCultureTank,
+  SettlingCone,
+  TubularPhotobioreactor,
+} from "@/symbols/equipment/aquaculture";
 
 import { BallValve } from "@/symbols/valves/BallValve";
 import { CheckValve } from "@/symbols/valves/CheckValve";
@@ -65,6 +78,7 @@ import {
   PinchValve,
   PlugValve,
   PressureRegulator,
+  PrimingValve,
   RuptureDisc,
   SolenoidValve,
   ThreeWayValve,
@@ -74,15 +88,19 @@ import {
   BagFilter,
   BasketStrainer,
   CartridgeFilter,
+  DrumFilter,
   DuplexFilter,
   SandFilter,
   SimplexFilter,
   TStrainer,
+  VibrationFilter,
   YStrainer,
 } from "@/symbols/filters";
 
 import {
+  AirDiffuser,
   AirVent,
+  Co2Injector,
   ConcentricReducer,
   Drain,
   EccentricReducer,
@@ -96,6 +114,7 @@ import {
   SpectacleBlind,
   SprayNozzle,
   SteamTrap,
+  UvSterilizer,
   Venturi,
 } from "@/symbols/inline";
 
@@ -971,6 +990,416 @@ export const SYMBOL_REGISTRY: Record<string, SymbolDef> = {
     defaultParams: { volumeM3: 5 },
   },
 
+  // --- Bioreactors & aquaculture ----------------------------------------
+  // Open / closed cultivation systems for algae, fish, and shrimp. Hydraulic
+  // models treat them as vessels (no internal ΔP at v1) unless an explicit
+  // deltaPbar is set per node.
+  "bioreactor-raceway": {
+    type: "bioreactor-raceway",
+    category: "equipment",
+    subcategory: "Bioreactors & aquaculture",
+    label: "Raceway pond bioreactor",
+    description:
+      "Paddlewheel-driven raceway pond for open algae cultivation.",
+    size: { width: 144, height: 96 },
+    ports: [
+      { id: "feed", side: "left", position: 0.3 },
+      { id: "harvest", side: "right", position: 0.7 },
+      { id: "co2", side: "top", position: 0.3 },
+      { id: "drain", side: "bottom", position: 0.5 },
+    ],
+    tagPrefix: "BR",
+    engineModel: "vessel",
+    Icon: BioreactorRaceway,
+    defaultLabel: "BR-101",
+    paramSchema: [
+      {
+        key: "depthM",
+        label: "Pond depth",
+        unit: "m",
+        kind: "number",
+        default: 0.3,
+        min: 0,
+      },
+      {
+        key: "areaM2",
+        label: "Surface area",
+        unit: "m²",
+        kind: "number",
+        default: 100,
+        min: 0,
+      },
+      {
+        key: "paddlewheelKW",
+        label: "Paddlewheel power",
+        unit: "kW",
+        kind: "number",
+        default: 1.5,
+        min: 0,
+      },
+    ],
+    defaultParams: { depthM: 0.3, areaM2: 100, paddlewheelKW: 1.5 },
+  },
+  "tubular-photobioreactor": {
+    type: "tubular-photobioreactor",
+    category: "equipment",
+    subcategory: "Bioreactors & aquaculture",
+    label: "Tubular photobioreactor",
+    description: "Closed serpentine PBR for high-density algae cultivation.",
+    size: { width: 96, height: 80 },
+    ports: [
+      { id: "feed", side: "left", position: 0.3 },
+      { id: "harvest", side: "right", position: 0.8 },
+      { id: "gas-in", side: "top", position: 0.2 },
+      { id: "gas-out", side: "top", position: 0.8 },
+    ],
+    tagPrefix: "PBR",
+    engineModel: "passive",
+    Icon: TubularPhotobioreactor,
+    defaultLabel: "PBR-101",
+    paramSchema: [
+      {
+        key: "volumeM3",
+        label: "Working volume",
+        unit: "m³",
+        kind: "number",
+        default: 1,
+        min: 0,
+      },
+      {
+        key: "tubeLengthM",
+        label: "Total tube length",
+        unit: "m",
+        kind: "number",
+        default: 200,
+        min: 0,
+      },
+      {
+        key: "deltaPbar",
+        label: "Loop ΔP",
+        unit: "bar",
+        kind: "number",
+        min: 0,
+        description: "Leave blank for a typical 0.2 bar serpentine loss.",
+      },
+    ],
+    defaultParams: { volumeM3: 1, tubeLengthM: 200 },
+    hydraulics: { lossModel: "deltaP", defaultDeltaPbar: 0.2 },
+  },
+  "round-culture-tank": {
+    type: "round-culture-tank",
+    category: "equipment",
+    subcategory: "Bioreactors & aquaculture",
+    label: "Round culture tank",
+    description: "Circular tank with centre drain — fish or shrimp culture.",
+    size: { width: 96, height: 96 },
+    ports: [
+      { id: "inlet", side: "left", position: 0.5 },
+      { id: "centre-drain", side: "bottom", position: 0.5 },
+      { id: "overflow", side: "top", position: 0.5 },
+      { id: "sample", side: "right", position: 0.5 },
+    ],
+    tagPrefix: "CT",
+    engineModel: "vessel",
+    Icon: RoundCultureTank,
+    defaultLabel: "CT-101",
+    paramSchema: [
+      {
+        key: "volumeM3",
+        label: "Working volume",
+        unit: "m³",
+        kind: "number",
+        default: 10,
+        min: 0,
+      },
+      {
+        key: "diameterM",
+        label: "Inside diameter",
+        unit: "m",
+        kind: "number",
+        default: 3,
+        min: 0,
+      },
+    ],
+    defaultParams: { volumeM3: 10, diameterM: 3 },
+  },
+  "moving-bed-bioreactor": {
+    type: "moving-bed-bioreactor",
+    category: "equipment",
+    subcategory: "Bioreactors & aquaculture",
+    label: "Moving-bed bioreactor (MBBR)",
+    description: "Aerated tank with floating biofilm carriers (nitrification).",
+    size: { width: 80, height: 96 },
+    ports: [
+      { id: "in", side: "left", position: 0.3 },
+      { id: "out", side: "right", position: 0.3 },
+      { id: "air", side: "bottom", position: 0.5 },
+    ],
+    tagPrefix: "BF",
+    engineModel: "vessel",
+    Icon: MovingBedBioreactor,
+    defaultLabel: "BF-101",
+    paramSchema: [
+      {
+        key: "volumeM3",
+        label: "Working volume",
+        unit: "m³",
+        kind: "number",
+        default: 4,
+        min: 0,
+      },
+      {
+        key: "carrierFillPct",
+        label: "Carrier fill",
+        unit: "%",
+        kind: "number",
+        default: 50,
+        min: 0,
+        max: 70,
+      },
+    ],
+    defaultParams: { volumeM3: 4, carrierFillPct: 50 },
+  },
+  "protein-skimmer": {
+    type: "protein-skimmer",
+    category: "equipment",
+    subcategory: "Bioreactors & aquaculture",
+    label: "Protein skimmer (foam fractionator)",
+    description: "Air-injection column that strips dissolved organics.",
+    size: { width: 64, height: 112 },
+    ports: [
+      { id: "in", side: "right", position: 0.7 },
+      { id: "out", side: "bottom", position: 0.5 },
+      { id: "foam", side: "top", position: 0.5 },
+      { id: "air", side: "bottom", position: 0.3 },
+    ],
+    tagPrefix: "PS",
+    engineModel: "passive",
+    Icon: ProteinSkimmer,
+    defaultLabel: "PS-101",
+    paramSchema: [
+      {
+        key: "throughputM3H",
+        label: "Rated throughput",
+        unit: "m³/h",
+        kind: "number",
+        default: 4,
+        min: 0,
+      },
+      {
+        key: "deltaPbar",
+        label: "ΔP",
+        unit: "bar",
+        kind: "number",
+        min: 0,
+        description: "Leave blank for a typical 0.05 bar drop.",
+      },
+    ],
+    defaultParams: { throughputM3H: 4 },
+    hydraulics: { lossModel: "deltaP", defaultDeltaPbar: 0.05 },
+  },
+  "paddlewheel-aerator": {
+    type: "paddlewheel-aerator",
+    category: "equipment",
+    subcategory: "Bioreactors & aquaculture",
+    label: "Paddlewheel aerator",
+    description:
+      "Surface aerator commonly used in shrimp ponds and raceways.",
+    size: { width: 96, height: 80 },
+    ports: [{ id: "air", side: "bottom", position: 0.5 }],
+    tagPrefix: "PA",
+    engineModel: "passive",
+    Icon: PaddlewheelAerator,
+    defaultLabel: "PA-101",
+    paramSchema: [
+      {
+        key: "powerKW",
+        label: "Motor power",
+        unit: "kW",
+        kind: "number",
+        default: 2,
+        min: 0,
+      },
+      {
+        key: "rpm",
+        label: "Wheel speed",
+        unit: "rpm",
+        kind: "number",
+        default: 90,
+        min: 0,
+      },
+    ],
+    defaultParams: { powerKW: 2, rpm: 90 },
+  },
+  "oxygen-cone": {
+    type: "oxygen-cone",
+    category: "equipment",
+    subcategory: "Bioreactors & aquaculture",
+    label: "Oxygen cone (low-head oxygenator)",
+    description: "Pressurised cone for dissolving pure O₂ into water (RAS).",
+    size: { width: 80, height: 112 },
+    ports: [
+      { id: "water-in", side: "top", position: 0.5 },
+      { id: "oxygen-in", side: "left", position: 0.25 },
+      { id: "water-out", side: "bottom", position: 0.5 },
+    ],
+    tagPrefix: "OX",
+    engineModel: "passive",
+    Icon: OxygenCone,
+    defaultLabel: "OX-101",
+    paramSchema: [
+      {
+        key: "ratedFlowM3H",
+        label: "Rated throughput",
+        unit: "m³/h",
+        kind: "number",
+        default: 10,
+        min: 0,
+      },
+      {
+        key: "deltaPbar",
+        label: "ΔP",
+        unit: "bar",
+        kind: "number",
+        min: 0,
+        description: "Leave blank for a typical 0.4 bar drop.",
+      },
+    ],
+    defaultParams: { ratedFlowM3H: 10 },
+    hydraulics: { lossModel: "deltaP", defaultDeltaPbar: 0.4 },
+  },
+  "settling-cone": {
+    type: "settling-cone",
+    category: "equipment",
+    subcategory: "Bioreactors & aquaculture",
+    label: "Settling cone / clarifier",
+    description:
+      "Cone-bottom settler — biomass thickening and water clarification.",
+    size: { width: 80, height: 96 },
+    ports: [
+      { id: "feed", side: "top", position: 0.5 },
+      { id: "overflow", side: "right", position: 0.15 },
+      { id: "underflow", side: "bottom", position: 0.5 },
+    ],
+    tagPrefix: "SC",
+    engineModel: "vessel",
+    Icon: SettlingCone,
+    defaultLabel: "SC-101",
+    paramSchema: [
+      {
+        key: "volumeM3",
+        label: "Volume",
+        unit: "m³",
+        kind: "number",
+        default: 2,
+        min: 0,
+      },
+    ],
+    defaultParams: { volumeM3: 2 },
+  },
+  "biomass-collection-vessel": {
+    type: "biomass-collection-vessel",
+    category: "equipment",
+    subcategory: "Bioreactors & aquaculture",
+    label: "Biomass collection vessel",
+    description:
+      "Cone-bottom holding vessel for harvested algae / wet biomass.",
+    size: { width: 80, height: 112 },
+    ports: [
+      { id: "feed", side: "top", position: 0.5 },
+      { id: "vent", side: "top", position: 0.25 },
+      { id: "side-in", side: "right", position: 0.3 },
+      { id: "drain", side: "bottom", position: 0.5 },
+    ],
+    tagPrefix: "BV",
+    engineModel: "vessel",
+    Icon: BiomassCollectionVessel,
+    defaultLabel: "BV-101",
+    paramSchema: [
+      {
+        key: "volumeM3",
+        label: "Volume",
+        unit: "m³",
+        kind: "number",
+        default: 1,
+        min: 0,
+      },
+    ],
+    defaultParams: { volumeM3: 1 },
+  },
+
+  // --- Storage & containers ---------------------------------------------
+  // Standalone holding / shipping containers, distinct from fixed plant
+  // vessels. Often gravity-feed sources of chemicals and bulk media.
+  "ibc-container": {
+    type: "ibc-container",
+    category: "equipment",
+    subcategory: "Storage & containers",
+    label: "IBC tote (1000 L)",
+    description: "Caged plastic intermediate-bulk container on a pallet base.",
+    size: { width: 96, height: 96 },
+    ports: [
+      { id: "fill", side: "top", position: 0.25 },
+      { id: "vent", side: "top", position: 0.75 },
+      { id: "outlet", side: "bottom", position: 0.85 },
+    ],
+    tagPrefix: "IBC",
+    engineModel: "vessel",
+    Icon: IbcContainer,
+    defaultLabel: "IBC-101",
+    paramSchema: [
+      {
+        key: "volumeM3",
+        label: "Capacity",
+        unit: "m³",
+        kind: "number",
+        default: 1,
+        min: 0,
+      },
+      {
+        key: "contents",
+        label: "Contents",
+        kind: "text",
+        default: "Process chemical",
+      },
+    ],
+    defaultParams: { volumeM3: 1, contents: "Process chemical" },
+  },
+  "chemical-drum": {
+    type: "chemical-drum",
+    category: "equipment",
+    subcategory: "Storage & containers",
+    label: "Chemical drum (200 L)",
+    description: "Standard 55 gal / 200 L steel or plastic drum.",
+    size: { width: 64, height: 96 },
+    ports: [
+      { id: "bung", side: "top", position: 0.5 },
+      { id: "vent", side: "top", position: 0.75 },
+      { id: "outlet", side: "bottom", position: 0.5 },
+    ],
+    tagPrefix: "DR",
+    engineModel: "vessel",
+    Icon: ChemicalDrum,
+    defaultLabel: "DR-101",
+    paramSchema: [
+      {
+        key: "volumeM3",
+        label: "Capacity",
+        unit: "m³",
+        kind: "number",
+        default: 0.2,
+        min: 0,
+      },
+      {
+        key: "contents",
+        label: "Contents",
+        kind: "text",
+        default: "Process chemical",
+      },
+    ],
+    defaultParams: { volumeM3: 0.2, contents: "Process chemical" },
+  },
+
   // ===== VALVES ============================================================
 
   // Isolation
@@ -1037,6 +1466,19 @@ export const SYMBOL_REGISTRY: Record<string, SymbolDef> = {
     "HV",
     HandValve,
     { lossModel: "k", defaultK: 0.5 },
+  ),
+  // Self-priming pumps and gravity-fed suction lines need a fill port to
+  // charge the pump with liquid before startup — that's this glyph. Vents
+  // back to atmosphere when fully open, so we treat it as a hand valve with
+  // a slightly higher K (the funnel restricts at the seat).
+  "priming-valve": inlineValve(
+    "priming-valve",
+    "Isolation",
+    "Priming valve",
+    "PV",
+    PrimingValve,
+    { lossModel: "k", defaultK: 1.5 },
+    { defaultLabel: "PV-101" },
   ),
 
   // Specialty body
@@ -1322,6 +1764,43 @@ export const SYMBOL_REGISTRY: Record<string, SymbolDef> = {
     { size: { width: 64, height: 80 } },
   ),
 
+  // --- Solids separation (aquaculture / process) -------------------------
+  // Both of these split the feed into two streams (filtrate + rejects), so
+  // we override INLINE_PORTS with explicit 1-in / 2-out topology.
+  "vibration-filter": filterSymbol(
+    "vibration-filter",
+    "Vibration filter (shaker screen)",
+    "VF",
+    VibrationFilter,
+    { lossModel: "k", defaultK: 7.0 },
+    {
+      subcategory: "Solids separation",
+      size: { width: 80, height: 64 },
+      ports: [
+        { id: "in", side: "left", position: 0.35 },
+        { id: "filtrate", side: "right", position: 0.5 },
+        { id: "reject", side: "bottom", position: 0.75 },
+      ],
+    },
+  ),
+  "drum-filter": filterSymbol(
+    "drum-filter",
+    "Rotary drum filter",
+    "DF",
+    DrumFilter,
+    { lossModel: "k", defaultK: 5.0 },
+    {
+      subcategory: "Solids separation",
+      size: { width: 80, height: 80 },
+      ports: [
+        { id: "in", side: "left", position: 0.35 },
+        { id: "filtrate", side: "right", position: 0.7 },
+        { id: "reject", side: "bottom", position: 0.5 },
+        { id: "backwash", side: "top", position: 0.5 },
+      ],
+    },
+  ),
+
   // ===== INLINE & FITTINGS ================================================
   "orifice-plate": inlineFitting(
     "orifice-plate",
@@ -1495,6 +1974,116 @@ export const SYMBOL_REGISTRY: Record<string, SymbolDef> = {
     { ports: [{ id: "in", side: "left", position: 0.5 }] },
   ),
 
+  // --- Disinfection & gas transfer --------------------------------------
+  // Inline devices that change water/process chemistry without removing
+  // solids. UV pulls a modest pressure drop from its quartz sleeve; the gas
+  // injectors are modeled as low-K elements driven by a separate gas feed.
+  "uv-sterilizer": inlineFitting(
+    "uv-sterilizer",
+    "Disinfection & gas",
+    "UV sterilizer",
+    UvSterilizer,
+    { lossModel: "k", defaultK: 2 },
+    {
+      size: { width: 64, height: 64 },
+      tagPrefix: "UV",
+      defaultLabel: "UV-101",
+      paramSchema: [
+        {
+          key: "lampPowerW",
+          label: "Lamp power",
+          unit: "W",
+          kind: "number",
+          default: 80,
+          min: 0,
+        },
+        {
+          key: "uvDoseMjCm2",
+          label: "UV dose",
+          unit: "mJ/cm²",
+          kind: "number",
+          default: 40,
+          min: 0,
+        },
+        {
+          key: "K",
+          label: "Loss coefficient K",
+          kind: "number",
+          min: 0,
+          description: "Leave blank for ~2 (clean quartz sleeve).",
+        },
+      ],
+      defaultParams: { lampPowerW: 80, uvDoseMjCm2: 40 },
+    },
+  ),
+  "co2-injector": inlineFitting(
+    "co2-injector",
+    "Disinfection & gas",
+    "CO₂ injector",
+    Co2Injector,
+    { lossModel: "k", defaultK: 1.5 },
+    {
+      size: { width: 56, height: 56 },
+      tagPrefix: "CI",
+      defaultLabel: "CI-101",
+      ports: [
+        { id: "in", side: "left", position: 0.6 },
+        { id: "out", side: "right", position: 0.6 },
+        { id: "gas", side: "top", position: 0.45 },
+      ],
+      paramSchema: [
+        {
+          key: "gasFlowNm3H",
+          label: "Gas flow",
+          unit: "Nm³/h",
+          kind: "number",
+          default: 1,
+          min: 0,
+        },
+        {
+          key: "K",
+          label: "Loss coefficient K",
+          kind: "number",
+          min: 0,
+          description: "Leave blank for ~1.5 (diffuser tee).",
+        },
+      ],
+      defaultParams: { gasFlowNm3H: 1 },
+    },
+  ),
+  "air-diffuser": inlineFitting(
+    "air-diffuser",
+    "Disinfection & gas",
+    "Air / O₂ diffuser",
+    AirDiffuser,
+    undefined,
+    {
+      size: { width: 56, height: 64 },
+      tagPrefix: "AD",
+      defaultLabel: "AD-101",
+      ports: [{ id: "gas", side: "left", position: 0.8 }],
+      paramSchema: [
+        {
+          key: "ratedFlowNm3H",
+          label: "Rated air flow",
+          unit: "Nm³/h",
+          kind: "number",
+          default: 2,
+          min: 0,
+        },
+        {
+          key: "porePitchMm",
+          label: "Pore pitch",
+          unit: "mm",
+          kind: "number",
+          default: 1,
+          min: 0,
+        },
+      ],
+      defaultParams: { ratedFlowNm3H: 2, porePitchMm: 1 },
+    },
+  ),
+
   // ===== CONNECTORS =======================================================
   "tap-point": {
     type: "tap-point",
@@ -1615,6 +2204,8 @@ export const SUBCATEGORY_ORDER: Partial<Record<SymbolCategory, string[]>> = {
     "Heat transfer",
     "Separation & columns",
     "Mixing",
+    "Bioreactors & aquaculture",
+    "Storage & containers",
   ],
   valve: [
     "Isolation",
@@ -1623,11 +2214,13 @@ export const SUBCATEGORY_ORDER: Partial<Record<SymbolCategory, string[]>> = {
     "Pressure relief & safety",
     "Specialty",
   ],
+  filter: ["Solids separation"],
   inline: [
     "Flow elements",
     "Traps & vents",
     "Sample & sight",
     "Mechanical",
+    "Disinfection & gas",
   ],
   instrument: ["Pressure", "Flow", "Temperature", "Level", "Analysis & misc"],
   connector: ["Connectors"],

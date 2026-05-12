@@ -105,3 +105,73 @@ export function SandFilter(props: SymbolIconProps) {
     </SvgFrame>
   );
 }
+
+/**
+ * Vibration filter / vibrating screen separator. Slurry enters on the left,
+ * the screen splits it into two streams: filtrate (right, straight through)
+ * and oversize / rejected solids (bottom). Vibration arcs above the body sell
+ * the "shaker" character at a glance.
+ */
+export function VibrationFilter(props: SymbolIconProps) {
+  return (
+    <SvgFrame {...props}>
+      {/* Inlet pipe (top-left). */}
+      <line x1={2} y1={20} x2={14} y2={20} />
+      <path d="M 14 18 L 14 22 L 20 20 Z" fill="currentColor" />
+      {/* Sloped screen body — slight downward tilt to suggest flow. */}
+      <path d="M 14 16 L 56 22 L 56 38 L 14 32 Z" />
+      {/* Mesh screen lines along the slope. */}
+      <line x1={20} y1={22} x2={20} y2={30} />
+      <line x1={28} y1={23} x2={28} y2={31} />
+      <line x1={36} y1={24} x2={36} y2={32} />
+      <line x1={44} y1={25} x2={44} y2={33} />
+      <line x1={52} y1={26} x2={52} y2={34} />
+      <line x1={16} y1={24} x2={56} y2={30} />
+      {/* Filtrate outlet (right, fine fraction passing through). */}
+      <line x1={56} y1={30} x2={62} y2={30} />
+      {/* Oversize / rejected solids outlet (bottom-right). */}
+      <line x1={48} y1={38} x2={48} y2={48} />
+      <path d="M 44 46 L 52 46 L 48 52 Z" fill="currentColor" />
+      {/* Vibration springs / supports underneath. */}
+      <path d="M 16 38 L 12 50 M 20 38 L 24 50" />
+      {/* Vibration arc indicators above the body. */}
+      <path d="M 24 12 Q 32 6, 40 12" strokeDasharray="2 2" />
+      <path d="M 22 8 Q 32 0, 42 8" strokeDasharray="2 2" />
+    </SvgFrame>
+  );
+}
+
+/**
+ * Rotary drum filter — half-submerged screened drum, common in RAS / fish-farm
+ * mechanical filtration. End-on view: a circle with a spiral / mesh and a
+ * water-line cutting across the lower half.
+ */
+export function DrumFilter(props: SymbolIconProps) {
+  return (
+    <SvgFrame {...props}>
+      {/* Drum housing. */}
+      <rect x={6} y={10} width={52} height={44} rx={4} />
+      {/* Inlet on the left. */}
+      <line x1={2} y1={20} x2={6} y2={20} />
+      <path d="M 6 18 L 6 22 L 10 20 Z" fill="currentColor" />
+      {/* Filtrate outlet on the right. */}
+      <line x1={58} y1={44} x2={62} y2={44} />
+      {/* Drum disc with mesh pattern. */}
+      <circle cx={32} cy={32} r={16} />
+      <circle cx={32} cy={32} r={11} strokeDasharray="2 2" />
+      <line x1={16} y1={32} x2={48} y2={32} />
+      <line x1={32} y1={16} x2={32} y2={48} />
+      <line x1={20} y1={20} x2={44} y2={44} />
+      <line x1={44} y1={20} x2={20} y2={44} />
+      {/* Half-submerged water line. */}
+      <line x1={8} y1={40} x2={56} y2={40} />
+      {/* Backwash spray bar on top. */}
+      <line x1={20} y1={6} x2={44} y2={6} />
+      <line x1={26} y1={6} x2={26} y2={12} strokeDasharray="1 2" />
+      <line x1={32} y1={6} x2={32} y2={12} strokeDasharray="1 2" />
+      <line x1={38} y1={6} x2={38} y2={12} strokeDasharray="1 2" />
+      {/* Reject solids outlet at the bottom. */}
+      <line x1={32} y1={54} x2={32} y2={60} />
+    </SvgFrame>
+  );
+}

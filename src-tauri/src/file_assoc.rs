@@ -20,8 +20,39 @@
 //! portable users the worst case is a stale association whose Open command
 //! points at a deleted exe, which Windows already handles gracefully.
 
+use serde::Serialize;
+
+/// Outcome of `ensure_pid_association`, surfaced to the splash screen so the
+/// user can see exactly what happened on this launch.
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FileAssocStatus {
+    /// Keys already pointed at this exe — nothing to do.
+    AlreadyCurrent,
+    /// First time we saw this exe path; keys created.
+    Created,
+    /// Keys existed but pointed somewhere else; keys updated.
+    Updated,
+    /// Platform doesn't need / support a runtime association (macOS, Linux).
+    /// Only constructed on non-Windows targets — the dead-code lint can't see
+    /// across the `cfg` gate, so we silence it explicitly.
+    #[allow(dead_code)]
+    NotApplicable,
+}
+
+impl FileAssocStatus {
+    pub fn label(self) -> &'static str {
+        match self {
+            FileAssocStatus::AlreadyCurrent => "File association already up to date",
+            FileAssocStatus::Created => "File association registered",
+            FileAssocStatus::Updated => "File association refreshed",
+            FileAssocStatus::NotApplicable => "File association not required on this platform",
+        }
+    }
+}
+
 #[cfg(windows)]
-pub fn ensure_pid_association() -> std::io::Result<()> {
+pub fn ensure_pid_association() -> std::io::Result<FileAssocStatus> {
     use std::env;
     use winreg::enums::*;
     use winreg::RegKey;
@@ -36,9 +67,15 @@ pub fn ensure_pid_association() -> std::io::Result<()> {
 
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
 
-    // --- Already up to date? Skip rewriting & skip the shell notification.
-    if association_is_current(&hkcu, &exe_str, PROG_ID) {
-        return Ok(());
+    let already = association_is_current(&hkcu, &exe_str, PROG_ID);
+    let had_prior = hkcu
+        .open_subkey(r"Software\Classes\.pid")
+        .ok()
+        .and_then(|k| k.get_value::<String, _>("").ok())
+        .is_some();
+
+    if already {
+        return Ok(FileAssocStatus::AlreadyCurrent);
     }
 
     // --- .pid → ProgID
@@ -79,7 +116,12 @@ pub fn ensure_pid_association() -> std::io::Result<()> {
     // shows up on existing .pid files in the current session, no sign-out
     // required. SHCNE_ASSOCCHANGED with null pids is the documented form.
     unsafe { shell_assoc_changed() };
-    Ok(())
+
+    Ok(if had_prior {
+        FileAssocStatus::Updated
+    } else {
+        FileAssocStatus::Created
+    })
 }
 
 /// Compare what's currently in the registry against what we'd write — used to
@@ -138,6 +180,6 @@ unsafe fn shell_assoc_changed() {
 
 /// Stub for non-Windows builds so the call-site in `lib.rs` stays clean.
 #[cfg(not(windows))]
-pub fn ensure_pid_association() -> std::io::Result<()> {
-    Ok(())
+pub fn ensure_pid_association() -> std::io::Result<FileAssocStatus> {
+    Ok(FileAssocStatus::NotApplicable)
 }

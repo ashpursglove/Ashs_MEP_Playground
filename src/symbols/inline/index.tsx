@@ -182,3 +182,122 @@ export function SprayNozzle(props: SymbolIconProps) {
     </SvgFrame>
   );
 }
+
+/**
+ * UV sterilizer — inline tube with a glowing lamp axis and burst rays. Used
+ * for water disinfection in RAS, drinking water, and dosing skids.
+ */
+export function UvSterilizer(props: SymbolIconProps) {
+  return (
+    <SvgFrame {...props}>
+      {/* Process tube body. */}
+      <rect x={10} y={22} width={44} height={20} rx={4} />
+      {/* Inlet / outlet stubs. */}
+      <line x1={2} y1={32} x2={10} y2={32} />
+      <line x1={54} y1={32} x2={62} y2={32} />
+      {/* Internal UV lamp axis. */}
+      <line
+        x1={16}
+        y1={32}
+        x2={48}
+        y2={32}
+        strokeWidth={2.2}
+        strokeDasharray="4 2"
+      />
+      {/* Burst rays radiating from the lamp midpoint. */}
+      <g>
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, i) => {
+          const r = (deg * Math.PI) / 180;
+          return (
+            <line
+              key={i}
+              x1={32 + Math.cos(r) * 5}
+              y1={32 + Math.sin(r) * 5}
+              x2={32 + Math.cos(r) * 9}
+              y2={32 + Math.sin(r) * 9}
+            />
+          );
+        })}
+      </g>
+      {/* "UV" label below the tube. */}
+      <text
+        x={32}
+        y={56}
+        textAnchor="middle"
+        fontSize={8}
+        fontWeight={600}
+        fill="currentColor"
+        stroke="none"
+      >
+        UV
+      </text>
+    </SvgFrame>
+  );
+}
+
+/**
+ * CO₂ injector — inline pipe with a top side-port gas inlet and bubbles
+ * flowing downstream. Common in algae raceways and pH-control loops.
+ */
+export function Co2Injector(props: SymbolIconProps) {
+  return (
+    <SvgFrame {...props}>
+      {/* Main process pipe. */}
+      <line x1={4} y1={36} x2={60} y2={36} />
+      {/* Side gas inlet from above. */}
+      <line x1={28} y1={4} x2={28} y2={36} />
+      <path d="M 24 6 L 32 6 L 28 14 Z" fill="currentColor" />
+      {/* Diffuser (porous tee) at the junction. */}
+      <rect x={24} y={32} width={10} height={8} rx={1} />
+      {/* Bubbles travelling downstream. */}
+      <circle cx={38} cy={32} r={1.6} />
+      <circle cx={44} cy={30} r={1.4} />
+      <circle cx={50} cy={32} r={1.3} />
+      <circle cx={42} cy={34} r={1.1} />
+      <circle cx={54} cy={34} r={1.0} />
+      {/* Label. */}
+      <text
+        x={28}
+        y={26}
+        textAnchor="middle"
+        fontSize={7}
+        fontWeight={600}
+        fill="currentColor"
+        stroke="none"
+      >
+        CO₂
+      </text>
+    </SvgFrame>
+  );
+}
+
+/**
+ * Air / O₂ diffuser — fine-bubble disc with rising bubble plume. Pipe stub
+ * enters from the side so it can be wired to an airline; the bubbles flow
+ * upward (no second process port — gas leaves the diffuser into the vessel
+ * it lives in).
+ */
+export function AirDiffuser(props: SymbolIconProps) {
+  return (
+    <SvgFrame {...props}>
+      {/* Air supply pipe. */}
+      <line x1={2} y1={48} x2={26} y2={48} />
+      {/* Diffuser disc / dome. */}
+      <path d="M 18 48 Q 32 36, 46 48 Z" />
+      <line x1={18} y1={48} x2={46} y2={48} />
+      {/* Stippled porosity along the dome. */}
+      <line x1={22} y1={44} x2={22} y2={44} strokeWidth={2} strokeLinecap="round" />
+      <line x1={28} y1={41} x2={28} y2={41} strokeWidth={2} strokeLinecap="round" />
+      <line x1={34} y1={41} x2={34} y2={41} strokeWidth={2} strokeLinecap="round" />
+      <line x1={40} y1={44} x2={40} y2={44} strokeWidth={2} strokeLinecap="round" />
+      {/* Rising bubble plume. */}
+      <circle cx={26} cy={32} r={1.8} />
+      <circle cx={32} cy={26} r={1.4} />
+      <circle cx={36} cy={18} r={1.2} />
+      <circle cx={30} cy={14} r={1.0} />
+      <circle cx={40} cy={28} r={1.6} />
+      <circle cx={28} cy={20} r={1.1} />
+      <circle cx={38} cy={10} r={1.3} />
+    </SvgFrame>
+  );
+}

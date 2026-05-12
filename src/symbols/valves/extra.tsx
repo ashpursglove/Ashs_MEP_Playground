@@ -258,3 +258,40 @@ export function PressureRegulator(props: SymbolIconProps) {
     />
   );
 }
+
+/**
+ * Priming valve — manual fill valve usually mounted at the top of a pump volute
+ * or suction line. Drawn as a bowtie with an upward funnel and a downward-flow
+ * arrow showing fluid charging into the body. A small "P" label removes any
+ * ambiguity vs. a generic hand valve at this scale.
+ */
+export function PrimingValve(props: SymbolIconProps) {
+  return (
+    <Bowtie
+      {...props}
+      overlay={
+        <g>
+          {/* Stem from valve seat to funnel base. */}
+          <line x1={32} y1={32} x2={32} y2={18} />
+          {/* Funnel mouth. */}
+          <path d="M 22 6 L 42 6 L 36 18 L 28 18 Z" />
+          {/* Downward-flow arrow showing priming direction. */}
+          <line x1={32} y1={22} x2={32} y2={28} />
+          <path d="M 28 26 L 32 32 L 36 26 Z" fill="currentColor" />
+          {/* "P" tag below the body for unambiguous identification. */}
+          <text
+            x={32}
+            y={54}
+            textAnchor="middle"
+            fontSize={8}
+            fontWeight={600}
+            fill="currentColor"
+            stroke="none"
+          >
+            P
+          </text>
+        </g>
+      }
+    />
+  );
+}
