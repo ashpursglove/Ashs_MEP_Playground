@@ -10,9 +10,8 @@
 [![Account required: also no](https://img.shields.io/badge/account%20required-also%20no-success)]()
 
 <p align="center">
-  <img src="docs/screenshots/hero.png" alt="Ash's P&ID Playground — main editor view" width="900">
-  <br>
-  <em>Screenshot placeholder: editor with a moderately busy P&amp;ID, palette on the left, inspector on the right.</em>
+<img width="1917" height="986" alt="image" src="https://github.com/user-attachments/assets/b0b157b2-4abd-4373-9870-52a113a986dd" />
+
 </p>
 
 ---
