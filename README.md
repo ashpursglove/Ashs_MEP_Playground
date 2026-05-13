@@ -7,8 +7,8 @@
 [![Rust](https://img.shields.io/badge/rust-stable-orange?logo=rust&logoColor=white)](https://rustup.rs)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-green)](#licence)
 [![Internet required: no](https://img.shields.io/badge/internet%20required-no-success)]()
-[![Account required: also no]([https://img.shields.io/badge/account%20required-also%20no-success])]()
-[![Account required: also no]]()
+[![Account required: also no](https://img.shields.io/badge/account%20required-also%20no-success)]()
+
 
 <p align="center">
 <img width="1917" height="986" alt="image" src="https://github.com/user-attachments/assets/b0b157b2-4abd-4373-9870-52a113a986dd" />
