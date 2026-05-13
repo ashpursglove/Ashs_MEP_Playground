@@ -1,6 +1,6 @@
 # Ash's P&ID Playground
 
-### Because Aveva, Hexagon, AutoCAD, and Aspen can collectively go fuck themselves if they think drawing a centrifugal pump should require a licence server, a VPN, and a phone call to a sales rep
+### Because Aveva, Hexagon, AutoCAD, and Aspen can collectively go fuck themselves if they think drawing a centrifugal pump should require a licence server, a VPN and a phone call to a sales rep
 
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB?logo=tauri&logoColor=white)](https://tauri.app)
 [![React](https://img.shields.io/badge/react-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
@@ -35,7 +35,7 @@ You launch the app. You draw. You save. You export. The end.
 
 The "industry-standard" P&ID and hydraulics toolchain currently consists of:
 
-- **AutoCAD P&ID** — $2,000+/year, requires a network licence, ships with stencils that look like they were drawn during the Cold War. By a man with the shakes.
+- **AutoCAD P&ID** — $2,000+/year, requires a network licence, ships with stencils that look like they were drawn during the Cold War.
 - **Aveva Diagrams / E3D / PDMS** — costs roughly the same as a small car. Requires you to **install a database**. To draw a vessel. With a triangle on it.
 - **Hexagon SmartPlant P&ID** — sales process so abusive you basically have to file a Freedom of Information request to find out what it costs.
 - **AutoPLANT / OpenPlant / Bentley anything** — same shit, different acronym, different consultant invoice.
