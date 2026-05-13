@@ -84,7 +84,7 @@ Forever.
 
 </p>
 
-### The Editor
+## The Editor
 
 - **Infinite canvas** built on React Flow. Pan, zoom, drag. It does what a canvas should do, which is shut up and let you draw.
 - **~133 ISO-style P&ID symbols** out of the box — pumps, compressors, vessels, columns, heat exchangers, separators, mixers, valves, instruments, fittings, the works. Listed in full further down.
@@ -103,7 +103,7 @@ Forever.
 
 </p>
 
-### The Hydraulics Engine
+## The Hydraulics Engine
 #### Pick a start node, pick an end node, pick a fluid, hit **Solve**.
 
 <p align="center">
@@ -144,12 +144,11 @@ When solve is clicked, the engine:
 
 </p>
 
-### The Drawings Tab
+## The Drawings Tab
 
 <p align="center">
-  <img src="docs/screenshots/drawings-overview.png" alt="Drawings tab" width="900">
-  <br>
-  <em>Screenshot placeholder: drawings tab showing the page list (left), an A3-landscape preview (centre), and the page inspector (right).</em>
+<img width="1912" height="967" alt="image" src="https://github.com/user-attachments/assets/5560fe0d-f163-45aa-84f5-bcf54bf5dd39" />
+
 </p>
 
 This is where you go from "I have a diagram" to "I have a deliverable".
@@ -167,15 +166,13 @@ This is where you go from "I have a diagram" to "I have a deliverable".
 - **Vector PDF output** via `jspdf` + `svg2pdf.js`. No rasterisation. Zoom in until the lines are atoms. Lines remain lines. Text remains text. You can highlight it. You can search it. You can sleep at night.
 
 <p align="center">
-  <img src="docs/screenshots/title-block.png" alt="ISO title block" width="700">
-  <br>
-  <em>Screenshot placeholder: close-up of the title block on an exported sheet.</em>
+<img width="1052" height="370" alt="image" src="https://github.com/user-attachments/assets/52de9692-28c6-4fd8-9ab3-e4ece1880cab" />
+
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/bom-page.png" alt="Bill of materials page" width="900">
-  <br>
-  <em>Screenshot placeholder: BoM page showing equipment table, pipe summary, and fitting counts.</em>
+<img width="1096" height="772" alt="image" src="https://github.com/user-attachments/assets/ddf2847e-cc16-4c45-aed6-01aa4879e118" />
+
 </p>
 
 ---
