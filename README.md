@@ -77,7 +77,7 @@ Forever.
 
 ---
 
-## What It Actually Does (Concretely, Without The Sales Pitch)
+## What It Actually Does
 
 <p align="center">
 <img width="1590" height="917" alt="image" src="https://github.com/user-attachments/assets/775acfbd-a29c-404b-9a3b-deaf247bf6ee" /> 
