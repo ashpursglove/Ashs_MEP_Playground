@@ -829,6 +829,7 @@ function ProjectMetaForm() {
         Nothing selected. Editing project metadata used by the PDF title block.
       </p>
       <Section title="Project">
+        {field("Company name", "companyName", "e.g. Acme Engineering Ltd.")}
         {field("Title", "title")}
         {field("Drawing number", "drawingNumber")}
       </Section>

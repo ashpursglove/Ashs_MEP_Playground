@@ -89,9 +89,12 @@ export function renderDrawingPage(
   });
   const frame = renderFrame();
 
-  // Page title strip across the top of the drawing area
+  // Page title strip across the top of the drawing area. We sit the baseline
+  // well below the inner frame (which is at y=MARGIN=8) so the text never
+  // crosses the border line — earlier versions hugged the border too closely
+  // and the ascenders kissed the inner rect on some pages.
   const header = page.title
-    ? textAt(DRAW_X + 4, DRAW_Y + 6, page.title, 4.8, "start", true)
+    ? textAt(DRAW_X + 4, DRAW_Y + 11, page.title, 4.4, "start", true)
     : "";
 
   return wrapSvg(
@@ -233,7 +236,9 @@ function renderAnalysisFirstPage(a: AnalysisSnapshot): string {
   const r = a.result;
   const margin = 6;
   const startX = DRAW_X + margin;
-  const top = DRAW_Y + 12;
+  // Sits below the per-page title bar (baseline ~ DRAW_Y + 11) so the
+  // section header doesn't crowd the page title.
+  const top = DRAW_Y + 17;
   const innerW = DRAW_W - 2 * margin;
 
   const parts: string[] = [];
@@ -316,7 +321,7 @@ function renderAnalysisFirstPage(a: AnalysisSnapshot): string {
 function renderAnalysisContinuationPage(a: AnalysisSnapshot): string {
   const margin = 6;
   const startX = DRAW_X + margin;
-  const top = DRAW_Y + 12;
+  const top = DRAW_Y + 17;
   const innerW = DRAW_W - 2 * margin;
   const pageIndex = a.pageIndex ?? 0;
   const total = a.totalPages ?? 1;
@@ -1079,7 +1084,8 @@ function renderBomPageBody(page: DrawingPage, ctx: PageRenderContext): string {
 
   const lines: string[] = [];
   const startX = DRAW_X + 6;
-  let cursorY = DRAW_Y + 14;
+  // Start below the per-page title bar so the BOM heading doesn't crowd it.
+  let cursorY = DRAW_Y + 19;
 
   lines.push(
     textAt(startX, cursorY, "Bill of Materials", 5.6, "start", true),

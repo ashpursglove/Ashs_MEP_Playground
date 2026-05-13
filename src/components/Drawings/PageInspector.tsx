@@ -170,6 +170,14 @@ export function PageInspector({ page }: Props) {
             </div>
           )}
           <TitleField
+            label="Company name"
+            placeholder={projectMeta.companyName ?? ""}
+            value={tb.companyName}
+            onChange={(v) =>
+              v ? setTbField("companyName", v) : clearTbField("companyName")
+            }
+          />
+          <TitleField
             label="Title"
             placeholder={projectMeta.title}
             value={tb.title}

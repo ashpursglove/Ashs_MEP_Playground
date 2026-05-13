@@ -402,7 +402,7 @@ export function Analysis() {
             onSendToDrawings={sendReportToDrawings}
           />
         ) : (
-          <EmptyState />
+          <EmptyState onSolve={runSolve} />
         )}
       </main>
     </div>
@@ -426,19 +426,21 @@ function ResultView({
   }
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between border-b border-zinc-800 bg-[var(--color-panel)] px-3 py-1.5">
+      {/* Sticky top bar — the result view can be very tall, so we pin the
+       *  "Send to Drawings" action to the top of the scroll viewport. The
+       *  parent <main> uses overflow-y-auto, which forms the scroll context
+       *  this element sticks within. Mid-page and footer copies of the button
+       *  also exist below so users hitting the bottom don't have to scroll
+       *  back up. */}
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-800 bg-[var(--color-panel)]/95 px-3 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-panel)]/80">
         <span className="text-[11px] uppercase tracking-wider text-zinc-500">
           Result
         </span>
-        <button
-          type="button"
-          onClick={handleSend}
-          title="Add this report as a new page in the Drawings tab"
-          className="flex items-center gap-1.5 rounded border border-zinc-700 bg-[var(--color-panel-2)] px-2.5 py-1 text-[11px] text-zinc-200 transition hover:border-sky-500 hover:text-sky-200"
-        >
-          <Send size={11} />
-          {sent ? "Sent ✓" : "Send report to Drawings"}
-        </button>
+        <SendToDrawingsButton
+          variant="outline"
+          sent={sent}
+          onSend={handleSend}
+        />
       </div>
 
       <PlainEnglishSummary result={result} mode={mode} />
@@ -467,9 +469,16 @@ function ResultView({
       </div>
 
       <section className="border-b border-zinc-800 p-3">
-        <h3 className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-          Pump vs. system curve
-          <HelpHint text="The pump curve shows how much head it produces at each flow. The system curve shows how much head the pipes need at each flow. Where they cross is the operating point." />
+        <h3 className="mb-1 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          <span className="flex items-center gap-1">
+            Pump vs. system curve
+            <HelpHint text="The pump curve shows how much head it produces at each flow. The system curve shows how much head the pipes need at each flow. Where they cross is the operating point." />
+          </span>
+          <SendToDrawingsButton
+            variant="outline"
+            sent={sent}
+            onSend={handleSend}
+          />
         </h3>
         <p className="mb-2 text-[11px] leading-relaxed text-zinc-500">
           The yellow dot marks the operating point — where the two curves
@@ -482,9 +491,16 @@ function ResultView({
       </section>
 
       <section className="border-b border-zinc-800 p-3">
-        <h3 className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-          Where does the head go?
-          <HelpHint text="Every pipe and fitting steals a little head from the pump. This table tells you exactly how much, and how fast the fluid is moving through each one." />
+        <h3 className="mb-1 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          <span className="flex items-center gap-1">
+            Where does the head go?
+            <HelpHint text="Every pipe and fitting steals a little head from the pump. This table tells you exactly how much, and how fast the fluid is moving through each one." />
+          </span>
+          <SendToDrawingsButton
+            variant="outline"
+            sent={sent}
+            onSend={handleSend}
+          />
         </h3>
         <ComponentsTable result={result} />
       </section>
@@ -505,8 +521,57 @@ function ResultView({
         </section>
       )}
 
+      {/* Footer CTA — last chance for users who scrolled to the bottom. The
+       *  prominent (filled) variant signals it's the primary next-action
+       *  after reading the breakdown. */}
+      <section className="flex flex-col items-center gap-2 border-b border-zinc-800 bg-[var(--color-panel)] p-4 text-center">
+        <p className="text-xs text-zinc-400">
+          Happy with this result? Pin it to the Drawings tab as a report
+          page.
+        </p>
+        <SendToDrawingsButton
+          variant="primary"
+          sent={sent}
+          onSend={handleSend}
+        />
+      </section>
+
       <Glossary />
     </div>
+  );
+}
+
+/**
+ * Single source of truth for the "Send report to Drawings" action — we drop
+ * several of these around the ResultView so the user never has to scroll
+ * back to a specific spot to issue the action. All instances share the same
+ * `sent` flash (lifted into the parent ResultView) so the confirmation
+ * appears on every copy at once.
+ */
+function SendToDrawingsButton({
+  variant,
+  sent,
+  onSend,
+}: {
+  variant: "outline" | "primary";
+  sent: boolean;
+  onSend: () => void;
+}) {
+  const base = "inline-flex items-center gap-1.5 rounded text-[11px] transition";
+  const styles =
+    variant === "primary"
+      ? "bg-sky-500 px-3 py-1.5 text-zinc-950 font-medium shadow-sm shadow-sky-500/20 hover:bg-sky-400"
+      : "border border-zinc-700 bg-[var(--color-panel-2)] px-2.5 py-1 text-zinc-200 hover:border-sky-500 hover:text-sky-200";
+  return (
+    <button
+      type="button"
+      onClick={onSend}
+      title="Add this report as a new page in the Drawings tab"
+      className={cn(base, styles)}
+    >
+      <Send size={variant === "primary" ? 13 : 11} />
+      {sent ? "Sent ✓" : "Send report to Drawings"}
+    </button>
   );
 }
 
@@ -922,25 +987,38 @@ function StatCard({
   );
 }
 
-function EmptyState() {
+function EmptyState({ onSolve }: { onSolve: () => void }) {
   return (
-    <div className="flex min-h-[40vh] flex-1 flex-col items-center justify-center gap-4 px-6 text-center text-zinc-400">
+    <div className="flex min-h-[40vh] flex-1 flex-col items-center justify-center gap-5 px-6 text-center text-zinc-400">
       <Play size={28} className="text-zinc-700" />
-      <div className="max-w-lg space-y-2">
-        <p className="text-base text-zinc-200">
-          Tell me where the flow starts and ends, what's flowing, then hit
-          <span className="mx-1 inline-flex items-center gap-1 rounded bg-sky-500/15 px-1.5 py-0.5 text-sky-300">
-            <Play size={11} /> Solve
-          </span>
-          .
+      <div className="max-w-xl space-y-3">
+        <p className="text-base font-medium text-zinc-100">
+          Configure the analysis on the left, then run the solver.
         </p>
         <p className="text-[12px] leading-relaxed text-zinc-500">
-          I'll walk the path between the two components you pick, look up every
-          pipe and fitting along the way, and work out how fast the fluid moves
-          and where the pressure goes. You can compare a "what will it actually
-          do" prediction against "what would it need to do my target flow".
+          The solver traces the route between the selected start and end
+          components, applies the chosen fluid properties, and computes the
+          resulting flow rate, fluid velocity, pump head, and stage-by-stage
+          pressure-drop budget for every pipe, fitting, valve, and item of
+          equipment along the path. Use{" "}
+          <span className="font-medium text-zinc-300">Predict the flow rate</span>{" "}
+          to find the natural operating point where the pump and system curves
+          intersect, or{" "}
+          <span className="font-medium text-zinc-300">Solve for a target flow</span>{" "}
+          to back-calculate the head required for a specified throughput.
         </p>
       </div>
+      {/* Convenience-run button — mirrors the sidebar Solve so users with a
+       *  ready setup don't have to reach back across the layout. Any missing
+       *  prerequisites (fluid / endpoints / route) are surfaced as inline
+       *  errors by runSolve itself. */}
+      <button
+        type="button"
+        onClick={onSolve}
+        className="inline-flex items-center gap-2 rounded bg-sky-500 px-4 py-2 text-sm font-medium text-zinc-950 shadow-md shadow-sky-500/20 transition hover:bg-sky-400"
+      >
+        <Play size={14} /> Solve
+      </button>
     </div>
   );
 }

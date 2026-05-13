@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Ash's P&ID Playground",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "identifier": "com.pandid.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -20,6 +20,7 @@
         "minHeight": 700,
         "resizable": true,
         "fullscreen": false,
+        "maximized": true,
         "dragDropEnabled": false
       }
     ],
@@ -29,7 +30,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "msi"],
+    "publisher": "Ash",
+    "copyright": "Copyright © 2026 Ash. All rights reserved.",
+    "category": "Productivity",
+    "shortDescription": "Local P&ID editor and hydraulic analysis tool.",
+    "longDescription": "Ash's P&ID Playground is a desktop application for drawing piping and instrumentation diagrams and solving single-path hydraulics. Draw ISO-style symbols on an infinite canvas, edit per-component parameters in a schema-driven inspector, export A3-landscape PDFs with an ISO title block, and solve pump-curve vs system-curve intersections directly from your diagram.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -45,6 +51,14 @@
         "role": "Editor",
         "mimeType": "application/x-pandid"
       }
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "installMode": "currentUser",
+        "languages": ["English"]
+      }
+    }
   }
 }

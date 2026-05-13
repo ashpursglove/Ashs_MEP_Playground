@@ -2,6 +2,9 @@ import { create } from "zustand";
 
 export interface ProjectMeta {
   title: string;
+  /** Company / organisation name shown next to the logo in the ISO title
+   *  block. Optional so old project files (v1, v2) load cleanly. */
+  companyName?: string;
   drawingNumber: string;
   drawnBy: string;
   checkedBy: string;
@@ -54,6 +57,7 @@ interface ProjectState {
 export function defaultMeta(): ProjectMeta {
   return {
     title: "Untitled Project",
+    companyName: "",
     drawingNumber: "DWG-0001",
     drawnBy: "",
     checkedBy: "",

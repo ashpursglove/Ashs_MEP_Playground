@@ -151,14 +151,58 @@ export function renderTitleBlock(
   rows.push(
     `<rect x="${TITLE_X}" y="${TITLE_Y + 2 * rowH}" width="${TITLE_W}" height="${rowH * 2}" fill="white" stroke="black" stroke-width="${FRAME_STROKE}" />`,
   );
+
+  // Bottom section is `rowH*2 = 28 mm` tall and currently shared between
+  // the project title, drawing number, sheet info, and an optional logo on
+  // the right. Stacking from the top:
+  //   y+ 4   COMPANY label (tiny)
+  //   y+ 8   company-name value (medium, bold)
+  //   y+13   TITLE label (tiny)
+  //   y+18   project-title value (large, bold)
+  //   y+23   drawing-number value (small)
+  //
+  // The right-hand logo box keeps its full bottom-section height; the text
+  // column above is sized so it never crosses into the logo zone.
+  const bottomY = TITLE_Y + 2 * rowH;
+  const logoBoxW = 26;
+  const textRightCap = TITLE_X + TITLE_W - logoBoxW - 4;
+  const textColW = Math.max(20, textRightCap - (TITLE_X + 2));
+  const company = (meta.companyName ?? "").trim();
   rows.push(
-    textAt(TITLE_X + 2, TITLE_Y + 2 * rowH + 4, "TITLE", 2.2, "start"),
+    textAt(TITLE_X + 2, bottomY + 4, "COMPANY", 2.2, "start"),
   );
   rows.push(
-    textAt(TITLE_X + 2, TITLE_Y + 2 * rowH + 10, meta.title || "Untitled", 4.5, "start", true),
+    textAt(
+      TITLE_X + 2,
+      bottomY + 8,
+      truncateForWidth(company || "—", 3.8, textColW),
+      3.8,
+      "start",
+      true,
+    ),
   );
   rows.push(
-    textAt(TITLE_X + 2, TITLE_Y + 2 * rowH + 16, meta.drawingNumber || "", 3.2, "start", false),
+    textAt(TITLE_X + 2, bottomY + 13, "TITLE", 2.2, "start"),
+  );
+  rows.push(
+    textAt(
+      TITLE_X + 2,
+      bottomY + 18,
+      truncateForWidth(meta.title || "Untitled", 4.2, textColW),
+      4.2,
+      "start",
+      true,
+    ),
+  );
+  rows.push(
+    textAt(
+      TITLE_X + 2,
+      bottomY + 23,
+      truncateForWidth(meta.drawingNumber || "", 3.0, textColW),
+      3.0,
+      "start",
+      false,
+    ),
   );
   const sheet = options.sheetOverride?.sheet ?? meta.sheet ?? "1";
   const total = options.sheetOverride?.totalSheets ?? meta.totalSheets ?? "1";
@@ -173,10 +217,8 @@ export function renderTitleBlock(
   );
 
   if (options.logoDataUrl) {
-    // Position the logo in the bottom-left of the title-block "TITLE" row so
-    // it sits beside the project title text. We use preserveAspectRatio so a
-    // non-square logo doesn't get squashed.
-    const logoBoxW = 26;
+    // Logo lives in the bottom-right corner of the bottom section. The text
+    // column above was sized to leave this width clear.
     const logoBoxH = rowH * 2 - 3;
     const lx = TITLE_X + TITLE_W - logoBoxW - 2;
     const ly = TITLE_Y + 2 * rowH + 1.5;
@@ -186,6 +228,19 @@ export function renderTitleBlock(
   }
 
   return `<g>${rows.join("")}</g>`;
+}
+
+/**
+ * Roughly clamp a string to a given column width so long names don't bleed
+ * into the logo column. Inter at the font sizes we use is approximately 0.55
+ * × fontSize per character wide; we pad slightly and ellipsise.
+ */
+function truncateForWidth(text: string, fontSizeMm: number, maxMm: number): string {
+  if (!text) return text;
+  const charMm = fontSizeMm * 0.55;
+  const maxChars = Math.max(4, Math.floor(maxMm / charMm));
+  if (text.length <= maxChars) return text;
+  return text.slice(0, Math.max(1, maxChars - 1)) + "…";
 }
 
 /* ----- Diagram area ----------------------------------------------------- */

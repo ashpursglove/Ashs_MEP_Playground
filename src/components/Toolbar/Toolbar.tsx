@@ -31,9 +31,16 @@ export function Toolbar() {
   const tab = useUIStore((s) => s.tab);
   const setTab = useUIStore((s) => s.setTab);
   const meta = useProjectStore((s) => s.meta);
+  const filePath = useProjectStore((s) => s.filePath);
   const isDirty = useProjectStore((s) => s.isDirty);
   const removeSelected = useDiagramStore((s) => s.removeSelected);
   const rotateSelected = useDiagramStore((s) => s.rotateSelected);
+
+  // The label next to the app name should reflect what's actually on disk so
+  // saving / loading is visibly reflected. The bare meta.title is a poor
+  // proxy because save/load doesn't touch it. Prefer the saved file's
+  // basename (without the .pid extension); fall back to the project title.
+  const projectLabel = projectDisplayName(filePath, meta.title);
 
   const temporal = useStore(useDiagramHistory());
   const canUndo = temporal.pastStates.length > 0;
@@ -102,8 +109,8 @@ export function Toolbar() {
         <span className="text-sm font-semibold tracking-tight text-zinc-100">
           Ash&rsquo;s P&amp;ID Playground
         </span>
-        <span className="text-xs text-zinc-500">
-          {meta.title}
+        <span className="text-xs text-zinc-500" title={filePath ?? meta.title}>
+          {projectLabel}
           {isDirty ? " *" : ""}
         </span>
       </div>
@@ -197,4 +204,23 @@ function ToolbarButton({ icon: Icon, title, onClick, disabled }: ToolbarButtonPr
       <Icon size={16} strokeWidth={1.75} />
     </button>
   );
+}
+
+/**
+ * Pick the most sensible label for the project shown in the top bar:
+ *
+ *   - Saved file → its basename without the `.pid` extension.
+ *     Handles Windows (`\\`) and POSIX (`/`) separators; falls back to the
+ *     raw path if neither shows up (browser-fallback "untitled.pid").
+ *   - No file yet → the meta title (default "Untitled Project").
+ */
+function projectDisplayName(
+  filePath: string | null,
+  metaTitle: string,
+): string {
+  if (filePath) {
+    const base = filePath.split(/[\\/]/).pop() ?? filePath;
+    return base.replace(/\.pid$/i, "");
+  }
+  return metaTitle;
 }
