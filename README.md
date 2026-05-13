@@ -281,8 +281,7 @@ Undo coalesces rapid changes — a node drag becomes one history entry, not 200,
 | Plotting | [`recharts`](https://recharts.org) for the pump-vs-system chart               |
 | Icons    | [`lucide-react`](https://lucide.dev)                                          |
 
-Total cold-launch time on a midrange laptop: about a second. Compare and contrast.
-
+Total cold-launch time on a midrange laptop: about a second. YMMV.
 ---
 
 ## Symbol Library (Full Inventory)
@@ -505,14 +504,7 @@ Yes please. The codebase tries hard to be readable:
 - The symbols registry is a flat list — adding a symbol is one object + one tiny SVG component
 - Presets are flat data files — adding a preset is one row
 
-Open issues, open PRs. The only thing I won't merge is anything that:
-
-- Adds a phone-home
-- Adds telemetry
-- Adds a licence check
-- Adds a "log in to continue"
-- Adds an EULA longer than this README
-- Imports a 200 MB dependency to do something three lines of regex would handle
+Open issues, open PRs. The only thing I won't merge is anything that imports a 200 MB dependency to do something three lines of regex would handle.
 
 ---
 
@@ -530,7 +522,7 @@ Just don't:
 - Submit it to the Microsoft Store as a $5.99/month subscription
 - Rename it to "PiperPro™ AI Edition Now With Blockchain" and post it on Product Hunt
 
-If you do any of the above, I will personally show up and read this README to you in front of your investors.
+If you do any of the above, I will personally show up and spit in your mouth!
 
 ---
 
