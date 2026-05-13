@@ -1,6 +1,6 @@
 # Ash's P&ID Playground
 
-### Because Aveva, Hexagon, AutoCAD, and Aspen can collectively go fuck themselves if they think drawing a centrifugal pump should require a licence server, a VPN, and a phone call to a sales rep named Brad
+### Because Aveva, Hexagon, AutoCAD, and Aspen can collectively go fuck themselves if they think drawing a centrifugal pump should require a licence server, a VPN, and a phone call to a sales rep
 
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB?logo=tauri&logoColor=white)](https://tauri.app)
 [![React](https://img.shields.io/badge/react-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
@@ -79,9 +79,8 @@ Forever.
 ## What It Actually Does (Concretely, Without The Sales Pitch)
 
 <p align="center">
-  <img src="docs/screenshots/editor-overview.png" alt="Editor overview" width="900">
-  <br>
-  <em>Screenshot placeholder: editor showing palette, infinite canvas, and inspector with a pump selected.</em>
+<img width="1590" height="917" alt="image" src="https://github.com/user-attachments/assets/775acfbd-a29c-404b-9a3b-deaf247bf6ee" />
+
 </p>
 
 ### The Editor
@@ -99,9 +98,8 @@ Forever.
 - **Auto-tagging** — drop a second centrifugal pump and it becomes P-102 because P-101 already exists. You can override it. Nobody is forcing you. It's just not 1997 here.
 
 <p align="center">
-  <img src="docs/screenshots/palette-and-inspector.png" alt="Palette and inspector" width="900">
-  <br>
-  <em>Screenshot placeholder: zoom-in of the palette (left) and the inspector (right) with a pipe selected showing length, ID, fittings, etc.</em>
+<img width="270" height="682" alt="image" src="https://github.com/user-attachments/assets/9a789127-c4b2-4283-b140-57bb03aec42a" />
+
 </p>
 
 ### The Hydraulics Engine
