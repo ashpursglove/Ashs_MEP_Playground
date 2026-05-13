@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Ash's P&ID Playground",
+  "productName": "Ash's PID Playground",
   "version": "1.0.0",
-  "identifier": "com.pandid.app",
+  "identifier": "com.ash.pandid",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:5173",
@@ -30,12 +30,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": ["msi"],
     "publisher": "Ash",
     "copyright": "Copyright © 2026 Ash. All rights reserved.",
     "category": "Productivity",
-    "shortDescription": "Local P&ID editor and hydraulic analysis tool.",
-    "longDescription": "Ash's P&ID Playground is a desktop application for drawing piping and instrumentation diagrams and solving single-path hydraulics. Draw ISO-style symbols on an infinite canvas, edit per-component parameters in a schema-driven inspector, export A3-landscape PDFs with an ISO title block, and solve pump-curve vs system-curve intersections directly from your diagram.",
+    "shortDescription": "Local PID editor and hydraulic analysis tool.",
+    "longDescription": "Ash's PID Playground is a desktop application for drawing piping and instrumentation diagrams and solving single-path hydraulics. Draw ISO-style symbols on an infinite canvas, edit per-component parameters in a schema-driven inspector, export A3-landscape PDFs with an ISO title block, and solve pump-curve vs system-curve intersections directly from your diagram.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -47,17 +47,14 @@
       {
         "ext": ["pid"],
         "name": "PandIDProject",
-        "description": "Ash's P&ID Playground project",
+        "description": "Ash's PID Playground project",
         "role": "Editor",
         "mimeType": "application/x-pandid"
       }
     ],
     "windows": {
-      "nsis": {
-        "displayLanguageSelector": false,
-        "installerIcon": "icons/icon.ico",
-        "installMode": "currentUser",
-        "languages": ["English"]
+      "wix": {
+        "language": "en-US"
       }
     }
   }
