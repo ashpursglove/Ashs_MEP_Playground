@@ -37,6 +37,7 @@ import {
   textAt,
   wrapSvg,
 } from "./svgRender";
+import { computeNoteBox } from "./annotationLayout";
 import { buildBom } from "./bom";
 
 export interface PageRenderContext {
@@ -1301,18 +1302,16 @@ function renderAnnotations(anns: Annotation[]): string {
       );
     } else if (a.kind === "note") {
       const fontSize = a.fontSize ?? 3.2;
-      const lines = (a.text ?? "").split("\n");
-      const padding = 1.5;
-      const charW = fontSize * 0.55;
-      const longest = lines.reduce((m, l) => Math.max(m, l.length), 0);
-      const boxW = Math.max(20, longest * charW + 2 * padding);
-      const boxH = lines.length * (fontSize + 0.6) + 2 * padding;
+      const { lines, w: boxW, h: boxH, padding, lineHeight } = computeNoteBox(
+        a.text ?? "",
+        fontSize,
+      );
       parts.push(
         `<rect x="${a.x}" y="${a.y}" width="${boxW.toFixed(2)}" height="${boxH.toFixed(2)}" fill="#fffbeb" stroke="#f59e0b" stroke-width="0.3" rx="1" />`,
       );
       lines.forEach((l, i) => {
         parts.push(
-          `<text x="${a.x + padding}" y="${a.y + padding + i * (fontSize + 0.6)}" font-size="${fontSize}" font-family="Inter, Helvetica, Arial, sans-serif" fill="#0f172a" dominant-baseline="hanging">${escapeText(l)}</text>`,
+          `<text x="${a.x + padding}" y="${a.y + padding + i * lineHeight}" font-size="${fontSize}" font-family="Inter, Helvetica, Arial, sans-serif" fill="#0f172a" dominant-baseline="hanging">${escapeText(l)}</text>`,
         );
       });
     } else if (a.kind === "arrow" && a.x2 != null && a.y2 != null) {
@@ -1322,11 +1321,9 @@ function renderAnnotations(anns: Annotation[]): string {
       parts.push(
         `<line x1="${a.x}" y1="${a.y}" x2="${a.x2}" y2="${a.y2}" stroke="#0f172a" stroke-width="0.5" marker-end="url(#arr-${escapeText(a.id)})" />`,
       );
-      if (a.text) {
-        const mx = (a.x + a.x2) / 2;
-        const my = (a.y + a.y2) / 2 - 1.2;
-        parts.push(textAt(mx, my, a.text, a.fontSize ?? 3, "middle"));
-      }
+      // Arrow labels are no longer supported — see annotationLayout.ts / the
+      // arrow-creation code in PagePreview.tsx. Any `text` left over on a
+      // legacy arrow annotation is intentionally ignored on render.
     }
   }
   return `<g class="annotations">${parts.join("")}</g>`;

@@ -21,7 +21,12 @@ import {
 } from "@/store/drawingsStore";
 import { renderDrawingPage } from "@/io/drawingsRender";
 import { PAGE_H, PAGE_W } from "@/io/svgRender";
+import { computeNoteBox } from "@/io/annotationLayout";
 import { cn } from "@/lib/utils";
+import {
+  TextPromptModal,
+  type TextPromptOptions,
+} from "@/components/Drawings/TextPromptModal";
 
 /* ----- element selection (pipes / components in diagram pages) --------- */
 
@@ -29,6 +34,16 @@ interface SelectedElement {
   id: string;
   kind: "node" | "edge";
 }
+
+/**
+ * Black crosshair for text / note / arrow placement. OS-provided cursors
+ * often follow `prefers-color-scheme` and render light on dark-app shells —
+ * nearly invisible on the white A3 sheet. A custom bitmap/SVG cursor stays
+ * dark everywhere; the fallback is still `crosshair` on older engines.
+ */
+const PLACEMENT_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><path d="M16 4v8M16 20v8M4 16h8M20 16h8"/></g><circle cx="16" cy="16" r="2" fill="#000"/></svg>',
+)}") 16 16, crosshair`;
 
 const COLOR_PALETTE: { label: string; value: string }[] = [
   { label: "Black", value: "#000000" },
@@ -75,12 +90,7 @@ function annotationBox(ann: Annotation): VBox {
   }
   if (ann.kind === "note") {
     const fontSize = ann.fontSize ?? 3.2;
-    const lines = (ann.text ?? "").split("\n");
-    const longest = lines.reduce((m, l) => Math.max(m, l.length), 0);
-    const padding = 1.5;
-    const charW = fontSize * 0.55;
-    const w = Math.max(20, longest * charW + 2 * padding);
-    const h = lines.length * (fontSize + 0.6) + 2 * padding;
+    const { w, h } = computeNoteBox(ann.text ?? "", fontSize);
     return { x: ann.x, y: ann.y, w, h };
   }
   // arrow
@@ -133,6 +143,18 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
   const [selectedAnnId, setSelectedAnnId] = useState<string | null>(null);
   const [selectedElement, setSelectedElement] =
     useState<SelectedElement | null>(null);
+
+  // Open modal state + a promise-returning helper so callers can `await`
+  // user input instead of dealing with browser `prompt()` flow.
+  const [promptState, setPromptState] = useState<
+    (TextPromptOptions & { resolve: (value: string | null) => void }) | null
+  >(null);
+
+  function askText(opts: TextPromptOptions): Promise<string | null> {
+    return new Promise((resolve) => {
+      setPromptState({ ...opts, resolve });
+    });
+  }
 
   // Only diagram pages render selectable nodes/edges — analysis pages have
   // their own (read-only) styling, BOM pages are pure text, etc.
@@ -437,12 +459,17 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page.id, selectedAnnId, removeAnnotation, pageSize.w, pageSize.h]);
 
-  function onCaptureClick(e: React.MouseEvent<SVGRectElement>) {
+  async function onCaptureClick(e: React.MouseEvent<SVGRectElement>) {
     if (!svgRef.current) return;
     const p = pageCoordsFrom(e, svgRef.current);
 
     if (tool === "text") {
-      const text = prompt("Annotation text:");
+      const text = await askText({
+        title: "Add text annotation",
+        initialValue: "",
+        multiline: false,
+        confirmLabel: "Add",
+      });
       if (text) {
         addAnnotation(page.id, {
           id: newAnnotationId(),
@@ -455,7 +482,13 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
       }
       setTool("select");
     } else if (tool === "note") {
-      const text = prompt("Note text (use Enter for new lines):");
+      const text = await askText({
+        title: "Add note",
+        hint: "Ctrl+Enter to confirm · Esc to cancel · Enter inserts a new line",
+        initialValue: "",
+        multiline: true,
+        confirmLabel: "Add",
+      });
       if (text) {
         addAnnotation(page.id, {
           id: newAnnotationId(),
@@ -468,10 +501,13 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
       }
       setTool("select");
     } else if (tool === "arrow") {
+      // Two-click arrow: first click sets the tail, second sets the head.
+      // We deliberately don't prompt for a label any more — arrow labels
+      // caused too many positioning and click-routing conflicts and are
+      // better placed as a separate text annotation right next to the arrow.
       if (!arrowDraft) {
         setArrowDraft(p);
       } else {
-        const text = prompt("Label (optional):") ?? "";
         addAnnotation(page.id, {
           id: newAnnotationId(),
           kind: "arrow",
@@ -479,8 +515,6 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
           y: arrowDraft.y,
           x2: p.x,
           y2: p.y,
-          text: text || undefined,
-          fontSize: 3.2,
         });
         setArrowDraft(null);
         setTool("select");
@@ -533,6 +567,8 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
     const edges = page.diagram?.edges ?? liveEdges;
     return describeElement(selectedElement, nodes, edges);
   }, [selectedElement, page.diagram, liveNodes, liveEdges]);
+
+  const placementActive = tool !== "select";
 
   return (
     <div className="flex h-full flex-col bg-zinc-950">
@@ -588,7 +624,9 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
         ref={viewportRef}
         className="relative flex-1 overflow-hidden bg-zinc-950"
         onMouseDown={onMouseDownViewport}
-        style={{ cursor: panState.current ? "grabbing" : undefined }}
+        style={{
+          cursor: placementActive ? PLACEMENT_CURSOR : panState.current ? "grabbing" : undefined,
+        }}
       >
         {/* Page wrapper. We resize it in actual CSS pixels (width/height) for
             zoom rather than CSS-scaling, so the SVG inside re-rasterises at
@@ -603,6 +641,10 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
             height: pageSize.h * zoom,
             transform: `translate(${pan.x}px, ${pan.y}px)`,
             willChange: "transform",
+            ...(placementActive && {
+              colorScheme: "light",
+              cursor: PLACEMENT_CURSOR,
+            }),
           }}
         >
           {/*
@@ -622,10 +664,7 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
           />
           <svg
             ref={svgRef}
-            className={cn(
-              "absolute inset-0 h-full w-full",
-              tool !== "select" && "cursor-crosshair",
-            )}
+            className="absolute inset-0 h-full w-full"
             viewBox={`0 0 ${PAGE_W} ${PAGE_H}`}
             preserveAspectRatio="xMidYMid meet"
             // In select-mode on a diagram page the overlay must be fully
@@ -638,6 +677,7 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
             style={{
               pointerEvents:
                 tool === "select" && elementSelectable ? "none" : "auto",
+              ...(placementActive && { cursor: PLACEMENT_CURSOR }),
             }}
           >
             {/* Always-present transparent capture rect — guarantees the SVG
@@ -654,6 +694,7 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
               style={{
                 pointerEvents:
                   tool === "select" && elementSelectable ? "none" : "all",
+                ...(placementActive && { cursor: PLACEMENT_CURSOR }),
               }}
             />
 
@@ -679,7 +720,9 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
 
             {/* Annotations + handles. Drawing them as a styled overlay (rather
                 than relying on the static base SVG below) means we get live,
-                selectable, draggable interaction in a single render pass. */}
+                selectable, draggable interaction in a single render pass.
+                Note: legacy arrow annotations may carry a `text` field — it
+                is intentionally not rendered any more. */}
             {page.annotations.map((ann) => {
               const isSelected = ann.id === selectedAnnId;
               return (
@@ -687,12 +730,24 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
                   key={ann.id}
                   ann={ann}
                   selected={isSelected}
+                  dragCursorStyle={
+                    placementActive ? PLACEMENT_CURSOR : "move"
+                  }
                   onSelect={() => setSelectedAnnId(ann.id)}
                   onStartDrag={(e) => startDragAnnotation(e, ann)}
-                  onDoubleClick={() => {
-                    const next = prompt("Edit text:", ann.text ?? "");
-                    if (next !== null)
+                  onDoubleClick={async () => {
+                    // Arrows carry no editable text — see arrow-creation
+                    // comment above. Double-clicking an arrow is a no-op.
+                    if (ann.kind === "arrow") return;
+                    const next = await askText({
+                      title: "Edit annotation",
+                      initialValue: ann.text ?? "",
+                      multiline: ann.kind === "note",
+                      confirmLabel: "Save",
+                    });
+                    if (next !== null) {
                       updateAnnotation(page.id, ann.id, { text: next });
+                    }
                   }}
                 />
               );
@@ -700,6 +755,24 @@ export function PagePreview({ page, pageNumber, totalPages }: Props) {
           </svg>
         </div>
       </div>
+
+      {promptState && (
+        <TextPromptModal
+          title={promptState.title}
+          hint={promptState.hint}
+          initialValue={promptState.initialValue}
+          multiline={promptState.multiline}
+          confirmLabel={promptState.confirmLabel}
+          onSubmit={(value) => {
+            promptState.resolve(value);
+            setPromptState(null);
+          }}
+          onCancel={() => {
+            promptState.resolve(null);
+            setPromptState(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -781,12 +854,15 @@ function Toolbar({
 function AnnotationLayer({
   ann,
   selected,
+  dragCursorStyle,
   onSelect,
   onStartDrag,
   onDoubleClick,
 }: {
   ann: Annotation;
   selected: boolean;
+  /** `move` in select mode; black crosshair while placing annotations */
+  dragCursorStyle: string;
   onSelect: () => void;
   onStartDrag: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
@@ -800,7 +876,7 @@ function AnnotationLayer({
 
   if (ann.kind === "text") {
     return (
-      <g style={{ cursor: "move", pointerEvents: "auto" }}>
+      <g style={{ cursor: dragCursorStyle, pointerEvents: "auto" }}>
         <text
           x={ann.x}
           y={ann.y}
@@ -832,11 +908,13 @@ function AnnotationLayer({
 
   if (ann.kind === "note") {
     const fontSize = ann.fontSize ?? 3.2;
-    const lines = (ann.text ?? "").split("\n");
-    const padding = 1.5;
+    const { lines, padding, lineHeight } = computeNoteBox(
+      ann.text ?? "",
+      fontSize,
+    );
     return (
       <g
-        style={{ cursor: "move", pointerEvents: "auto" }}
+        style={{ cursor: dragCursorStyle, pointerEvents: "auto" }}
         onMouseDown={onMouseDown}
         onDoubleClick={onDoubleClick}
       >
@@ -854,7 +932,7 @@ function AnnotationLayer({
           <text
             key={i}
             x={ann.x + padding}
-            y={ann.y + padding + i * (fontSize + 0.6)}
+            y={ann.y + padding + i * lineHeight}
             fontSize={fontSize}
             fontFamily="Inter, Helvetica, Arial, sans-serif"
             fill="#0f172a"
@@ -873,7 +951,7 @@ function AnnotationLayer({
   const y2 = ann.y2 ?? ann.y;
   return (
     <g
-      style={{ cursor: "move", pointerEvents: "auto" }}
+      style={{ cursor: dragCursorStyle, pointerEvents: "auto" }}
       onMouseDown={onMouseDown}
       onDoubleClick={onDoubleClick}
     >
@@ -899,19 +977,7 @@ function AnnotationLayer({
         strokeWidth={selected ? 0.7 : 0.5}
         markerEnd={`url(#overlay-arr-${ann.id})`}
       />
-      {ann.text && (
-        <text
-          x={(ann.x + x2) / 2}
-          y={(ann.y + y2) / 2 - 1.2}
-          fontSize={ann.fontSize ?? 3}
-          fontFamily="Inter, Helvetica, Arial, sans-serif"
-          fill="#0f172a"
-          textAnchor="middle"
-          style={{ userSelect: "none" }}
-        >
-          {ann.text}
-        </text>
-      )}
+      {/* Arrow text was removed — arrows now render line + arrowhead only. */}
       <rect
         x={box.x}
         y={box.y}
