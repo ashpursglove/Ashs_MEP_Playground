@@ -248,8 +248,8 @@ After install you get:
 ### Run from source (dev mode)
 
 ```bash
-git clone https://github.com/ashpursglove/PandID.git
-cd PandID
+git clone https://github.com/ashpursglove/Ashs_MEP_Playground.git
+cd Ashs_MEP_Playground
 npm install
 npm run tauri dev
 ```
